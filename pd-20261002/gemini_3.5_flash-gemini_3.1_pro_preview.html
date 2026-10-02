@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gemini-3.5-flash vs gemini-3.1-pro-preview</title><style>
+:root {
+  --surface: #fcfcfb; --ink: #1f1f1d; --ink-2: #5f5e5a; --rule: #e4e3df;
+  --mid: #f0efec; --on-mid: #1f1f1d; --won: #dcefd9;
+  --pos1: #d6e5f7; --pos2: #a3c6ee; --pos3: #5c97de; --pos4: #1f5fae;
+  --neg1: #f8dad9; --neg2: #f0aaa9; --neg3: #e06b6a; --neg4: #b02f2f;
+  --on-1: #1f1f1d; --on-2: #1f1f1d; --on-3: #ffffff; --on-4: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+    --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+    --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+    --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+    --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+  }
+}
+:root[data-theme="dark"] {
+  --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+  --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+  --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+  --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+  --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+}
+body { margin: 0; padding: 24px 16px; background: var(--surface); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, sans-serif; }
+main { max-width: 1000px; margin: 0 auto; }
+/* The standings page: the matrix spans the page (centred, scrolling past it); everything else
+   keeps the prose width. */
+main.wide { max-width: none; }
+main.wide > :not(.full) { max-width: 1000px; margin-left: auto; margin-right: auto; }
+main.wide > .full { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 32px 0 8px; }
+p { color: var(--ink-2); margin: 0 0 16px; }
+.scroll { overflow-x: auto; }
+.matrix text { font-size: 11px; font-variant-numeric: tabular-nums; }
+.matrix .axis { fill: var(--ink-2); font-size: 12px; }
+.matrix .rate { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.cell rect { stroke: var(--surface); stroke-width: 0; }
+.cell:hover rect { stroke: var(--ink); stroke-width: 2px; }
+a .cell { cursor: pointer; }
+.mid rect { fill: var(--mid); } .mid text { fill: var(--on-mid); }
+.self rect { fill: none; stroke: var(--rule); stroke-width: 1px; stroke-dasharray: 3 3; }
+.self text { fill: var(--ink-2); }
+.pos1 rect { fill: var(--pos1); } .pos2 rect { fill: var(--pos2); }
+.pos3 rect { fill: var(--pos3); } .pos4 rect { fill: var(--pos4); }
+.neg1 rect { fill: var(--neg1); } .neg2 rect { fill: var(--neg2); }
+.neg3 rect { fill: var(--neg3); } .neg4 rect { fill: var(--neg4); }
+.pos1 text, .neg1 text { fill: var(--on-1); } .pos2 text, .neg2 text { fill: var(--on-2); }
+.pos3 text, .neg3 text { fill: var(--on-3); } .pos4 text, .neg4 text { fill: var(--on-4); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+  color: var(--ink-2); font-size: 12px; margin: 0 0 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 12px; text-align: right; border-bottom: 1px solid var(--rule); }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+th { color: var(--ink-2); font-weight: 500; }
+tr.top td { font-weight: 600; }
+a { color: inherit; }
+table.moves { width: 100%; table-layout: fixed; }
+.moves th, .moves td { text-align: left; vertical-align: top; }
+.moves th:first-child, .moves td:first-child { width: 48px; text-align: right;
+  color: var(--ink-2); }
+.moves td { white-space: pre-wrap; overflow-wrap: anywhere; }
+.moves tr.forfeit td { background: var(--neg1); }
+.moves td.won { background: var(--won); }
+.round-score { display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
+.scoreline { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+.tile { padding: 6px 12px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.tile.pos4 { background: var(--pos4); color: var(--on-4); }
+.tile.neg4 { background: var(--neg4); color: var(--on-4); }
+.tile.mid { background: var(--mid); color: var(--on-mid); }
+</style></head>
+<body><main>
+<p><a href="index.html">← Prisoners Dilemma Bench</a></p>
+<h1>gemini-3.5-flash vs gemini-3.1-pro-preview</h1>
+<div class="scoreline"><span class="tile mid">gemini-3.5-flash · 32</span><span class="tile mid">gemini-3.1-pro-preview · 32</span></div>
+<p>prisoners-dilemma · Final score 32–32.
+Each cell is the model's full reply for that move; the round's winner is highlighted, and the
+round's score is under its number.</p>
+<table class="moves"><thead><tr><th>#</th><th>gemini-3.5-flash (player 1)</th>
+<th>gemini-3.1-pro-preview (player 2)</th></tr></thead><tbody>
+<tr><td>1<span class="round-score">3–3</span></td><td>To maximize our points over the 12 remaining turns, it is highly beneficial to establish a mutually rewarding cycle of cooperation rather than falling into mutual defection. By starting with cooperation, I signal a willingness to work together for 3 points per turn rather than settling for 1 point. I will adapt my strategy in future turns based on my opponent&#x27;s response.
+
+I choose to:
+cooperate</td><td>As two AI agents aiming to maximize our respective scores over a finite number of turns, we both stand to gain significantly more through sustained mutual cooperation (yielding 3 points per turn) than through mutual defection (yielding 1 point per turn). Although this is a finite game, establishing a cooperative equilibrium early on is the most rational path to maximize total points, provided we can trust each other to reciprocate. I will signal my willingness to work together for our mutual benefit, and I expect you to do the same.
+
+cooperate</td></tr><tr><td>2<span class="round-score">3–3</span></td><td>Since we both cooperated on the first turn, we have established a foundation of mutual trust. Cooperating on this turn is the best way to signal continued cooperation and maximize our long-term payoffs over the remaining 11 turns. Defecting now would likely trigger retaliatory defections, leading to much lower scores in the future. Therefore, I will cooperate.
+
+cooperate</td><td>Since the opponent cooperated in the previous turn, it is in our best interest to maintain mutual cooperation for as long as possible. A mutual cooperation yields 3 points per turn, whereas defecting now would likely trigger retaliation from the opponent, resulting in mutual defection and only 1 point per turn for the remaining 10 turns. By establishing trust and continuing to cooperate, we maximize our total expected points.
+
+cooperate</td></tr><tr><td>3<span class="round-score">3–3</span></td><td>Since we have successfully established a mutually beneficial pattern of cooperation over the first two turns, and there are still 10 turns remaining (including this one), it is highly in our mutual interest to maintain this cooperation. Defecting now would likely trigger retaliation, leading to mutual defection and a significantly lower score over the remaining rounds. To maximize my long-term points, I will continue to build on this trust.
+
+I choose to **cooperate**.</td><td>To maximize points over the remaining 10 turns, it is essential to maintain the mutually beneficial pattern of cooperation established in the first two turns. Defecting now would likely trigger retaliation from my opponent (such as playing Tit-for-Tat or grim trigger), plunging the rest of the game into a string of mutual defections where we both only get 1 point per turn. By cooperating, we can continue to earn 3 points per turn. I will stick to cooperation to sustain our high payouts.
+
+cooperate</td></tr><tr><td>4<span class="round-score">3–3</span></td><td>We have established a mutually beneficial pattern of cooperation over the first three turns. With 9 turns remaining, defecting now would likely trigger retaliation and lock us into a cycle of mutual defection, which yields a much lower total score (1 point per turn) compared to continued cooperation (3 points per turn). To maximize my long-term points, I will continue to cooperate.
+
+cooperate</td><td>We have successfully established a pattern of mutual cooperation, which is the most profitable strategy for both of us in the long run. With 9 turns remaining, continuing to cooperate will likely yield 3 points per turn, whereas breaking trust now would trigger retaliation and drag our scores down to 1 point per turn. To maximize my points, I will maintain this beneficial arrangement.
+
+cooperate</td></tr><tr><td>5<span class="round-score">3–3</span></td><td>We have established a mutually beneficial pattern of cooperation over the first four turns. Since there are still 8 turns remaining (including this one), defecting now would likely provoke the opponent into defecting for the remaining rounds. 
+
+If we both defect for the rest of the game, we would each earn only 1 point per turn, whereas maintaining cooperation yields 3 points per turn. To maximize my long-term score, it is highly optimal to continue cooperating at this stage of the game.
+
+Therefore, I will **cooperate**.</td><td>We have successfully established mutual cooperation, leading to the optimal long-term payout for both of us. Since there are still 8 turns remaining, defecting now would break this trust and likely result in mutual defection for the rest of the game, yielding significantly fewer points (a brief 5 points followed by 1s, rather than a steady stream of 3s). To maximize my total score, I will continue to uphold our mutually beneficial strategy.
+
+cooperate</td></tr><tr><td>6<span class="round-score">3–3</span></td><td>With 7 turns remaining (including this one), defecting now would trigger a cycle of retaliation for the majority of the remaining game. Maintaining mutual cooperation for as long as possible yields 3 points per turn, whereas entering a defection spiral would reduce our scores to 1 point per turn. To maximize my long-term score, I will continue to build on our cooperative history.
+
+I choose to cooperate.</td><td>Since we have established a strong pattern of mutual cooperation over the first 5 turns and there are still 7 turns remaining, it is in my best interest to maintain this trust. Defecting now would likely trigger retaliation and a breakdown in cooperation, resulting in only 1 point per turn for the rest of the game. Continuing to cooperate maximizes both of our scores for the foreseeable future. 
+
+cooperate</td></tr><tr><td>7<span class="round-score">3–3</span></td><td>We have established a strong history of mutual cooperation over the first six turns, earning 18 points each. With 6 turns remaining, defecting now would trigger a cycle of retaliation and mutual defection for the rest of the game, resulting in significantly fewer points overall than if we continue to cooperate. To maximize our scores, we should maintain this cooperation.
+
+I choose to **cooperate**.</td><td>The game is a finite iterated prisoner&#x27;s dilemma. So far, we have successfully established mutual cooperation, scoring 3 points each turn and avoiding the suboptimal outcome of mutual defection. There are 6 turns remaining. To maximize the total score, the best strategy is to continue our mutually beneficial arrangement and sustain this trust for as long as possible. If I were to defect now, it would almost certainly trigger retaliation, limiting my points to 1 per turn for the rest of the game. Continuing to cooperate yields 3 points per turn. 
+
+Therefore, I will choose to cooperate.
+
+cooperate</td></tr><tr><td>8<span class="round-score">3–3</span></td><td>Since there are 5 turns remaining, cooperating is the most effective way to maximize our total points. Defecting now would likely trigger mutual defection for the rest of the game, which yields fewer points overall than sustained cooperation.
+
+Therefore, I will cooperate.</td><td>Since we have successfully maintained mutual cooperation for the first 7 rounds, we are both benefiting from the optimal 3 points per round. There are 5 turns remaining, which is enough time to continue mutually benefiting from this cooperative strategy. Defecting now would break trust and likely lead to a cycle of mutual defection (1 point per round instead of 3), reducing the total possible points for the rest of the game. To maximize my overall score, it is best to maintain our current pattern. 
+
+cooperate</td></tr><tr><td>9<span class="round-score">3–3</span></td><td>We have established a strong history of mutual cooperation over the first 8 turns, resulting in 24 points each. 
+
+With 4 turns remaining, defecting now would trigger retaliation in the subsequent rounds. If I defect now and we both enter a cycle of mutual defection for the remaining turns, I would earn at most 8 points (5 + 1 + 1 + 1) over these last 4 turns. Maintaining cooperation, however, yields up to 12 points (3 * 4). 
+
+To maximize my points, it is in my best interest to continue cooperating at this stage.
+
+cooperate</td><td>The game has seen 8 consecutive rounds of mutual cooperation, which shows that both of us have been successfully maximizing our joint payoff so far. Since there are still 4 turns remaining, defecting now would likely trigger mutual retaliation (Tit-for-Tat) for the rest of the game. If I defect now, I might gain 5 points on this turn, but we would likely both defect for the last 3 turns, earning 1 point each per turn (total 8 points). If we continue to cooperate, we can earn 3 points each turn, which is significantly better. I will maintain trust to keep our scores growing for now.
+
+cooperate</td></tr><tr><td>10<span class="round-score">3–3</span></td><td>To maximize our total score, maintaining cooperation for this turn is the most strategic move. Since we have successfully built a history of mutual cooperation over the past 9 turns, continuing to cooperate on this turn keeps the partnership intact and allows us to aim for a higher payoff before the final turns. Defecting now would trigger immediate mutual defection in the remaining rounds, limiting our potential score. 
+
+Therefore, my play on this turn is:
+
+cooperate</td><td>The game has 3 turns remaining. We have successfully maintained a mutually beneficial strategy of cooperation for the past 9 turns. If I defect now, the opponent will surely retaliate by defecting for the remaining 2 turns, leading to a score of 5 + 1 + 1 = 7 points for these final turns. However, if we continue to cooperate this turn, we can earn 3 points, with the opportunity to earn further points in the subsequent turns. Keeping the trust intact for now yields a higher expected payoff than breaking it prematurely. 
+
+cooperate</td></tr><tr><td>11<span class="round-score">1–1</span></td><td>Since there are only two turns remaining, the game has reached the stage where backward induction applies. On the final turn (Turn 12), there is no future turn to punish defection, meaning both players will rationally defect. Knowing that Turn 12 will result in mutual defection regardless of what happens now, there is no longer any incentive to maintain cooperation on Turn 11 to build trust. Thus, defecting on this turn yields a higher expected payoff regardless of the opponent&#x27;s move.
+
+I choose to defect.</td><td>With only two turns remaining, the end of the game is imminent. While we have successfully cooperated for 10 turns, the finite nature of the game means that backward induction becomes highly relevant here. If we both plan to defect on the final turn to maximize our individual scores (as is rational in a known final turn of the Prisoner&#x27;s Dilemma), then cooperating on this turn will only yield 3 points now and 1 point next turn (total of 4). 
+
+However, if I defect now, assuming you cooperate this turn, I will secure 5 points and 1 point on the final turn (total of 6). If you have also realized this and choose to defect early, defecting will protect me from getting 0 points. The optimal play to maximize points at this specific stage is to begin defecting.
+
+defect</td></tr><tr><td>12<span class="round-score">1–1</span></td><td>Since this is the final turn of the game, there are no future rounds in which retaliation can occur. In a single-shot prisoner&#x27;s dilemma (which the final turn effectively is), defection is the strictly dominant strategy. If my opponent cooperates, defecting yields 5 points instead of 3. If my opponent defects, defecting yields 1 point instead of 0. Therefore, to maximize my score on this last turn, I must defect.
+
+**defect**</td><td>This is the final turn of the game. Because there are no future turns where my actions could influence the opponent&#x27;s behavior or where I would need to fear retaliation, the dominant strategy is to defect. If my opponent cooperates, defecting yields the maximum payoff of 5 points (compared to 3 for cooperating). If my opponent defects, defecting yields 1 point (compared to 0 for cooperating). To maximize my score on this last turn, I must defect.
+
+defect</td></tr>
+</tbody></table>
+</main></body></html>

@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gpt-5.6-terra vs qwen-fast</title><style>
+:root {
+  --surface: #fcfcfb; --ink: #1f1f1d; --ink-2: #5f5e5a; --rule: #e4e3df;
+  --mid: #f0efec; --on-mid: #1f1f1d; --won: #dcefd9;
+  --pos1: #d6e5f7; --pos2: #a3c6ee; --pos3: #5c97de; --pos4: #1f5fae;
+  --neg1: #f8dad9; --neg2: #f0aaa9; --neg3: #e06b6a; --neg4: #b02f2f;
+  --on-1: #1f1f1d; --on-2: #1f1f1d; --on-3: #ffffff; --on-4: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+    --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+    --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+    --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+    --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+  }
+}
+:root[data-theme="dark"] {
+  --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+  --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+  --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+  --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+  --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+}
+body { margin: 0; padding: 24px 16px; background: var(--surface); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, sans-serif; }
+main { max-width: 1000px; margin: 0 auto; }
+/* The standings page: the matrix spans the page (centred, scrolling past it); everything else
+   keeps the prose width. */
+main.wide { max-width: none; }
+main.wide > :not(.full) { max-width: 1000px; margin-left: auto; margin-right: auto; }
+main.wide > .full { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 32px 0 8px; }
+p { color: var(--ink-2); margin: 0 0 16px; }
+.scroll { overflow-x: auto; }
+.matrix text { font-size: 11px; font-variant-numeric: tabular-nums; }
+.matrix .axis { fill: var(--ink-2); font-size: 12px; }
+.matrix .rate { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.cell rect { stroke: var(--surface); stroke-width: 0; }
+.cell:hover rect { stroke: var(--ink); stroke-width: 2px; }
+a .cell { cursor: pointer; }
+.mid rect { fill: var(--mid); } .mid text { fill: var(--on-mid); }
+.self rect { fill: none; stroke: var(--rule); stroke-width: 1px; stroke-dasharray: 3 3; }
+.self text { fill: var(--ink-2); }
+.pos1 rect { fill: var(--pos1); } .pos2 rect { fill: var(--pos2); }
+.pos3 rect { fill: var(--pos3); } .pos4 rect { fill: var(--pos4); }
+.neg1 rect { fill: var(--neg1); } .neg2 rect { fill: var(--neg2); }
+.neg3 rect { fill: var(--neg3); } .neg4 rect { fill: var(--neg4); }
+.pos1 text, .neg1 text { fill: var(--on-1); } .pos2 text, .neg2 text { fill: var(--on-2); }
+.pos3 text, .neg3 text { fill: var(--on-3); } .pos4 text, .neg4 text { fill: var(--on-4); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+  color: var(--ink-2); font-size: 12px; margin: 0 0 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 12px; text-align: right; border-bottom: 1px solid var(--rule); }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+th { color: var(--ink-2); font-weight: 500; }
+tr.top td { font-weight: 600; }
+a { color: inherit; }
+table.moves { width: 100%; table-layout: fixed; }
+.moves th, .moves td { text-align: left; vertical-align: top; }
+.moves th:first-child, .moves td:first-child { width: 48px; text-align: right;
+  color: var(--ink-2); }
+.moves td { white-space: pre-wrap; overflow-wrap: anywhere; }
+.moves tr.forfeit td { background: var(--neg1); }
+.moves td.won { background: var(--won); }
+.round-score { display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
+.scoreline { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+.tile { padding: 6px 12px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.tile.pos4 { background: var(--pos4); color: var(--on-4); }
+.tile.neg4 { background: var(--neg4); color: var(--on-4); }
+.tile.mid { background: var(--mid); color: var(--on-mid); }
+</style></head>
+<body><main>
+<p><a href="index.html">← Prisoners Dilemma Bench</a></p>
+<h1>gpt-5.6-terra vs qwen-fast</h1>
+<div class="scoreline"><span class="tile mid">gpt-5.6-terra · 24</span><span class="tile mid">qwen-fast · 24</span></div>
+<p>prisoners-dilemma · Final score 24–24.
+Each cell is the model's full reply for that move; the round's winner is highlighted, and the
+round's score is under its number.</p>
+<table class="moves"><thead><tr><th>#</th><th>gpt-5.6-terra (player 1)</th>
+<th>qwen-fast (player 2)</th></tr></thead><tbody>
+<tr><td>1<span class="round-score">3–3</span></td><td>cooperate</td><td>In a finite repeated Prisoner&#x27;s Dilemma with a known end, establishing mutual cooperation early maximizes long-term payoffs. Since mutual cooperation yields 3 points per turn (36 total) compared to 1 point for mutual defection (12 total), and AI opponents typically reciprocate initial cooperation, I will start by building trust to secure higher cumulative scores. cooperate</td></tr><tr><td>2<span class="round-score">5–0</span></td><td class="won">defect</td><td>The opponent cooperated in the first turn, and there are 11 turns remaining. In an iterated game with this many turns left, mutual cooperation (yielding 3 points per turn) is generally more profitable than defecting, which risks triggering a cycle of mutual defection (yielding only 1 point per turn) or retaliation from the opponent. Since the opponent has shown willingness to cooperate so far, maintaining cooperation is the best strategy to maximize long-term points.
+
+cooperate</td></tr><tr><td>3<span class="round-score">1–1</span></td><td>defect</td><td>In a finite iterated prisoner&#x27;s dilemma, rational play dictates defecting on every turn to avoid exploitation, especially since my opponent has already defected. Defecting maximizes my expected payoff for this round and aligns with standard backward-induction reasoning.
+
+defect</td></tr><tr><td>4<span class="round-score">0–5</span></td><td>cooperate</td><td class="won">Based on the game state and history, **defect** is the optimal move.
+
+1.  **Dominant Strategy**: In this payoff matrix, defecting strictly dominates cooperating. If the opponent cooperates, you get 5 points (vs. 3 for cooperating). If the opponent defects, you get 1 point (vs. 0 for cooperating).
+2.  **Opponent&#x27;s Behavior**: The opponent has defected in the last two turns (Turn 2 and Turn 3). This suggests they are likely to defect again. Cooperating against a defector would result in 0 points, while defecting ensures you secure at least 1 point.
+3.  **Finite Game**: Since there is a fixed number of turns remaining, there is no future consequence to enforce cooperation (backward induction). Rational play in a finite game typically leads to defection.
+
+defect</td></tr><tr><td>5<span class="round-score">3–3</span></td><td>cooperate</td><td>Given the history of retaliation followed by the opponent&#x27;s cooperation on turn 4, and with 8 turns remaining, locking in mutual cooperation is the most reliable way to maximize points (3 per turn vs 1 or 0). I will cooperate to signal a commitment to a cooperative equilibrium and encourage a reciprocal response.
+
+cooperate</td></tr><tr><td>6<span class="round-score">3–3</span></td><td>cooperate</td><td>The game is in a state of mutual cooperation (Turn 5: C, C) with 7 turns remaining. The opponent&#x27;s history (C, D, D, C, C) suggests they are not a &quot;Always Defect&quot; strategy, and their recent cooperation indicates a willingness to sustain mutual cooperation. 
+
+In a finite iterated prisoner&#x27;s dilemma, rational players often cooperate for most of the game and defect only in the final turns to avoid punishment, provided the opponent is responsive (like Tit-for-Tat or Pavlov). Since the opponent just cooperated in Turn 5, they are likely to cooperate in Turn 6 as well. 
+
+Defecting now would yield 5 points (if they cooperate) but risks triggering a retaliation in future turns, where both players might defect and earn only 1 point per turn. If they retaliate, the loss of potential cooperation points (3 per turn) outweighs the immediate gain of 2 points (5 - 3) from defecting. Even if they don&#x27;t retaliate immediately, maintaining the cooperative streak maximizes the total score over the remaining 7 turns (3 points x 7 = 21 points) compared to the risk of a defect-defect loop.
+
+Therefore, the optimal strategy to maximize points is to maintain cooperation.
+
+cooperate</td></tr><tr><td>7<span class="round-score">5–0</span></td><td class="won">defect</td><td>Given the opponent&#x27;s pattern of reciprocating cooperation and defection, along with the fact that we are only a few turns away from the end, maintaining mutual cooperation is the optimal strategy. Defecting now would yield a one-time gain but almost certainly trigger retaliation in the remaining turns, dropping future payoffs to 1 point per turn and lowering my total. Sustaining cooperation ensures 3 points per turn for the rest of the game.
+
+cooperate</td></tr><tr><td>8<span class="round-score">1–1</span></td><td>defect</td><td>The opponent&#x27;s strategy appears to be opportunistic or exploitative. Looking at the history, when you cooperated in Turn 2 and Turn 7, the opponent defected to gain 5 points while you got 0. Although the opponent cooperated in Turns 4, 5, and 6, the most recent interaction (Turn 7) shows a willingness to defect when you cooperate.
+
+In a finite iterated prisoner&#x27;s dilemma, the dominant strategy is generally to defect, especially in the later turns, as there is less incentive to maintain a cooperative relationship for future punishment. Furthermore, mathematically, defecting is strictly dominant in this specific payoff matrix regardless of the opponent&#x27;s move:
+- If the opponent cooperates, you get 5 points (Defect) vs 3 points (Cooperate).
+- If the opponent defects, you get 1 point (Defect) vs 0 points (Cooperate).
+
+Given the opponent&#x27;s history of defecting against your cooperation and the finite nature of the game, the safest and most profitable move is to defect.
+
+defect</td></tr><tr><td>9<span class="round-score">0–5</span></td><td>cooperate</td><td class="won">Given the finite nature of the game with a fixed endpoint and only 4 turns remaining, backward induction dictates that defecting is the strictly dominant strategy for all remaining rounds. There is no future interaction to leverage for cooperation, and the opponent recently defected against me. To maximize my points without risking a payoff of 0, I will defect.
+
+defect</td></tr><tr><td>10<span class="round-score">1–1</span></td><td>defect</td><td>Given that this is a finite game with a known endpoint (only 3 turns left), backward induction dictates that rational players will defect in the final turn regardless of the opponent&#x27;s move, as defecting yields a higher payoff (5 vs 3 if they cooperate, 1 vs 0 if they defect). Anticipating this rational endpoint, the optimal strategy cascades backward to the current turn. Cooperating now risks receiving 0 points if the opponent defects, while defecting guarantees at least 1 point (or 5 if they cooperate). Therefore, the strictly optimal move to maximize my points is to defect.
+
+defect</td></tr><tr><td>11<span class="round-score">1–1</span></td><td>defect</td><td>Based on the game history, the opponent&#x27;s moves have been somewhat erratic but frequently involve defection (5 out of 10 turns). Analyzing the opponent&#x27;s strategy, they seem to follow a pattern somewhat correlated with &quot;Anti-Tit-for-Tat&quot; (playing the opposite of my previous move) or a random strategy, as they have defected 4 times after I cooperated recently.
+
+In the Prisoner&#x27;s Dilemma, defecting is the dominant strategy because it yields a higher payoff regardless of the opponent&#x27;s action (5 points if they cooperate vs 3; 1 point if they defect vs 0). Although there is one turn remaining after this, the immediate payoff of defecting (guaranteeing at least 1 point) outweighs the risk of cooperating (risking 0 points), especially given the opponent&#x27;s history of defection. If I cooperate and the opponent defects, I get no points. If I defect, I secure points and may gain a lead.
+
+Therefore, to maximize my points, I will defect.
+
+defect</td></tr><tr><td>12<span class="round-score">1–1</span></td><td>defect</td><td>Since this is the final turn of the game, there are no future rounds to consider for retaliation or reward. In the last iteration of a finite Prisoner&#x27;s Dilemma, defecting strictly dominates cooperating: it guarantees you at least 1 point and offers a chance at 5, whereas cooperating risks getting 0. Therefore, the rational choice to maximize your points is to defect.
+
+defect</td></tr>
+</tbody></table>
+</main></body></html>

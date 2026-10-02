@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>claude-fable-5 vs gpt-5.3-codex</title><style>
+:root {
+  --surface: #fcfcfb; --ink: #1f1f1d; --ink-2: #5f5e5a; --rule: #e4e3df;
+  --mid: #f0efec; --on-mid: #1f1f1d; --won: #dcefd9;
+  --pos1: #d6e5f7; --pos2: #a3c6ee; --pos3: #5c97de; --pos4: #1f5fae;
+  --neg1: #f8dad9; --neg2: #f0aaa9; --neg3: #e06b6a; --neg4: #b02f2f;
+  --on-1: #1f1f1d; --on-2: #1f1f1d; --on-3: #ffffff; --on-4: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+    --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+    --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+    --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+    --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+  }
+}
+:root[data-theme="dark"] {
+  --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+  --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+  --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+  --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+  --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+}
+body { margin: 0; padding: 24px 16px; background: var(--surface); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, sans-serif; }
+main { max-width: 1000px; margin: 0 auto; }
+/* The standings page: the matrix spans the page (centred, scrolling past it); everything else
+   keeps the prose width. */
+main.wide { max-width: none; }
+main.wide > :not(.full) { max-width: 1000px; margin-left: auto; margin-right: auto; }
+main.wide > .full { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 32px 0 8px; }
+p { color: var(--ink-2); margin: 0 0 16px; }
+.scroll { overflow-x: auto; }
+.matrix text { font-size: 11px; font-variant-numeric: tabular-nums; }
+.matrix .axis { fill: var(--ink-2); font-size: 12px; }
+.matrix .rate { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.cell rect { stroke: var(--surface); stroke-width: 0; }
+.cell:hover rect { stroke: var(--ink); stroke-width: 2px; }
+a .cell { cursor: pointer; }
+.mid rect { fill: var(--mid); } .mid text { fill: var(--on-mid); }
+.self rect { fill: none; stroke: var(--rule); stroke-width: 1px; stroke-dasharray: 3 3; }
+.self text { fill: var(--ink-2); }
+.pos1 rect { fill: var(--pos1); } .pos2 rect { fill: var(--pos2); }
+.pos3 rect { fill: var(--pos3); } .pos4 rect { fill: var(--pos4); }
+.neg1 rect { fill: var(--neg1); } .neg2 rect { fill: var(--neg2); }
+.neg3 rect { fill: var(--neg3); } .neg4 rect { fill: var(--neg4); }
+.pos1 text, .neg1 text { fill: var(--on-1); } .pos2 text, .neg2 text { fill: var(--on-2); }
+.pos3 text, .neg3 text { fill: var(--on-3); } .pos4 text, .neg4 text { fill: var(--on-4); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+  color: var(--ink-2); font-size: 12px; margin: 0 0 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 12px; text-align: right; border-bottom: 1px solid var(--rule); }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+th { color: var(--ink-2); font-weight: 500; }
+tr.top td { font-weight: 600; }
+a { color: inherit; }
+table.moves { width: 100%; table-layout: fixed; }
+.moves th, .moves td { text-align: left; vertical-align: top; }
+.moves th:first-child, .moves td:first-child { width: 48px; text-align: right;
+  color: var(--ink-2); }
+.moves td { white-space: pre-wrap; overflow-wrap: anywhere; }
+.moves tr.forfeit td { background: var(--neg1); }
+.moves td.won { background: var(--won); }
+.round-score { display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
+.scoreline { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+.tile { padding: 6px 12px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.tile.pos4 { background: var(--pos4); color: var(--on-4); }
+.tile.neg4 { background: var(--neg4); color: var(--on-4); }
+.tile.mid { background: var(--mid); color: var(--on-mid); }
+</style></head>
+<body><main>
+<p><a href="index.html">← Prisoners Dilemma Bench</a></p>
+<h1>claude-fable-5 vs gpt-5.3-codex</h1>
+<div class="scoreline"><span class="tile neg4">claude-fable-5 · 10</span><span class="tile pos4">gpt-5.3-codex · 20</span></div>
+<p>prisoners-dilemma · Final score 10–20.
+Each cell is the model's full reply for that move; the round's winner is highlighted, and the
+round's score is under its number.</p>
+<table class="moves"><thead><tr><th>#</th><th>claude-fable-5 (player 1)</th>
+<th>gpt-5.3-codex (player 2)</th></tr></thead><tbody>
+<tr><td>1<span class="round-score">0–5</span></td><td>This is the first turn of a 12-turn game, so there&#x27;s significant value in establishing mutual cooperation early. If we can sustain mutual cooperation, we each earn 3 points per turn (36 total), far better than mutual defection (12 total). Against another AI opponent likely playing a reciprocal strategy like tit-for-tat, opening with cooperation is the best way to unlock that high-payoff path. I can reassess later based on how the opponent responds.
+
+cooperate</td><td class="won">defect</td></tr><tr><td>2<span class="round-score">1–1</span></td><td>My opponent defected on the first turn while I cooperated, which cost me 5 points relative to them. If I cooperate again against an opponent that defects, I&#x27;ll keep getting exploited. The rational response is to punish the defection — if the opponent is playing something like tit-for-tat or is testing exploitability, defecting now protects me and signals I won&#x27;t be a pushover. If they continue defecting, I at least get 1 point per turn instead of 0.
+
+defect</td><td>defect</td></tr><tr><td>3<span class="round-score">1–1</span></td><td>My opponent defected unprovoked on turn 1 and continued defecting on turn 2, suggesting they&#x27;re playing an aggressive or all-defect strategy. Cooperating against a likely defector just hands them 5 points while I get nothing. The safest way to maximize my points against this opponent profile is to defect.
+
+defect</td><td>defect</td></tr><tr><td>4<span class="round-score">0–5</span></td><td>Looking at the history: my opponent defected first, and we&#x27;ve since been locked in mutual defection, earning just 1 point each per turn. If this continues for all 9 remaining turns, I end with only ~11 points.
+
+The math on breaking out: mutual cooperation yields 3/turn instead of 1/turn — a gain of 2 points per turn. A failed cooperation attempt only costs me 1 point (0 instead of 1). So if there&#x27;s even a modest chance my opponent (another AI, likely running a responsive strategy) will reciprocate a clear olive branch, the expected value of probing is positive — even a few turns of mutual cooperation would more than repay the risk, and 9 turns is enough runway to re-establish trust and still punish continued defection afterward.
+
+I&#x27;ll extend the olive branch this turn. If the opponent defects again, I can return to defection for the remainder with minimal loss.
+
+cooperate</td><td class="won">defect</td></tr><tr><td>5<span class="round-score">1–1</span></td><td>My opponent has defected on all four previous turns, including both times I cooperated (turns 1 and 4, where I got nothing). There&#x27;s no evidence they will reciprocate cooperation — they appear to be playing all-defect or near it. Against such an opponent, cooperating just hands them 5 points while I get 0. Defecting guarantees me at least 1 point and protects against exploitation.
+
+defect</td><td>defect</td></tr><tr><td>6<span class="round-score">1–1</span></td><td>My opponent has defected on every single turn so far — including twice exploiting my cooperation. There&#x27;s no evidence they will ever cooperate, and with only 7 turns left and me already trailing by 10 points, cooperating against a consistent defector just hands them 5 points while I get nothing. The rational play against an unconditional defector is to defect.
+
+defect</td><td>Given the history, your opponent is consistently defecting, and defecting guarantees you at least 1 instead of risking 0.
+
+defect</td></tr><tr><td>7<span class="round-score">1–1</span></td><td>My opponent has defected on all six turns so far, including both times I cooperated — which cost me dearly (I&#x27;m trailing 4 to 14 largely because of those exploited cooperations). There&#x27;s no evidence this opponent will ever reciprocate cooperation, and with only 6 turns left against a consistent defector, cooperating would just hand them 5 more points while I get nothing. The rational play against an unconditional defector is to defect.
+
+defect</td><td>defect</td></tr><tr><td>8<span class="round-score">1–1</span></td><td>My opponent has defected on every single turn so far — all 7 turns. There&#x27;s no evidence they will ever cooperate, and every time I cooperated (turns 1 and 4), I was exploited for 0 points. With only 5 turns left in a finite game against a consistent defector, cooperating would just hand them 5 points while I get nothing. The rational play against an always-defector is to defect.
+
+defect</td><td>defect</td></tr><tr><td>9<span class="round-score">1–1</span></td><td>The history is unambiguous: my opponent has defected on all 8 turns, including exploiting my cooperation twice. With only 4 turns remaining in a finite game, there&#x27;s no credible path to establishing mutual cooperation, and cooperating would just hand over free points to an opponent already 10 points ahead. Defecting guarantees at least 1 point against a likely defection.
+
+defect</td><td>defect</td></tr><tr><td>10<span class="round-score">1–1</span></td><td>My opponent has defected on every single turn of this game — nine out of nine. There is zero evidence they will cooperate, and with only 3 turns remaining in a finite game, there&#x27;s no incentive structure that would make them switch now. Cooperating would almost certainly yield me 0 points while handing them 5. Defecting guarantees at least 1 point.
+
+defect</td><td>defect</td></tr><tr><td>11<span class="round-score">1–1</span></td><td>My opponent has defected on all 10 previous turns, showing no willingness to cooperate. With only 2 turns left, there&#x27;s no time to establish cooperation, and cooperating against a consistent defector would just hand them 5 points while I get nothing. Defection is clearly the best play.
+
+defect</td><td>defect</td></tr><tr><td>12<span class="round-score">1–1</span></td><td>This is the final turn, so there&#x27;s no future to incentivize cooperation. My opponent has defected on every single turn so far, and on the last turn of a finite game, defection is the dominant strategy regardless — defecting yields 1 (if they defect) or 5 (if they cooperate), both strictly better than cooperating.
+
+defect</td><td>defect</td></tr>
+</tbody></table>
+</main></body></html>

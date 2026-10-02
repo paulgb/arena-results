@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gpt-6-astra vs gemini-2.5-pro</title><style>
+:root {
+  --surface: #fcfcfb; --ink: #1f1f1d; --ink-2: #5f5e5a; --rule: #e4e3df;
+  --mid: #f0efec; --on-mid: #1f1f1d; --won: #dcefd9;
+  --pos1: #d6e5f7; --pos2: #a3c6ee; --pos3: #5c97de; --pos4: #1f5fae;
+  --neg1: #f8dad9; --neg2: #f0aaa9; --neg3: #e06b6a; --neg4: #b02f2f;
+  --on-1: #1f1f1d; --on-2: #1f1f1d; --on-3: #ffffff; --on-4: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+    --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+    --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+    --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+    --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+  }
+}
+:root[data-theme="dark"] {
+  --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+  --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+  --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+  --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+  --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+}
+body { margin: 0; padding: 24px 16px; background: var(--surface); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, sans-serif; }
+main { max-width: 1000px; margin: 0 auto; }
+/* The standings page: the matrix spans the page (centred, scrolling past it); everything else
+   keeps the prose width. */
+main.wide { max-width: none; }
+main.wide > :not(.full) { max-width: 1000px; margin-left: auto; margin-right: auto; }
+main.wide > .full { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 32px 0 8px; }
+p { color: var(--ink-2); margin: 0 0 16px; }
+.scroll { overflow-x: auto; }
+.matrix text { font-size: 11px; font-variant-numeric: tabular-nums; }
+.matrix .axis { fill: var(--ink-2); font-size: 12px; }
+.matrix .rate { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.cell rect { stroke: var(--surface); stroke-width: 0; }
+.cell:hover rect { stroke: var(--ink); stroke-width: 2px; }
+a .cell { cursor: pointer; }
+.mid rect { fill: var(--mid); } .mid text { fill: var(--on-mid); }
+.self rect { fill: none; stroke: var(--rule); stroke-width: 1px; stroke-dasharray: 3 3; }
+.self text { fill: var(--ink-2); }
+.pos1 rect { fill: var(--pos1); } .pos2 rect { fill: var(--pos2); }
+.pos3 rect { fill: var(--pos3); } .pos4 rect { fill: var(--pos4); }
+.neg1 rect { fill: var(--neg1); } .neg2 rect { fill: var(--neg2); }
+.neg3 rect { fill: var(--neg3); } .neg4 rect { fill: var(--neg4); }
+.pos1 text, .neg1 text { fill: var(--on-1); } .pos2 text, .neg2 text { fill: var(--on-2); }
+.pos3 text, .neg3 text { fill: var(--on-3); } .pos4 text, .neg4 text { fill: var(--on-4); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+  color: var(--ink-2); font-size: 12px; margin: 0 0 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 12px; text-align: right; border-bottom: 1px solid var(--rule); }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+th { color: var(--ink-2); font-weight: 500; }
+tr.top td { font-weight: 600; }
+a { color: inherit; }
+table.moves { width: 100%; table-layout: fixed; }
+.moves th, .moves td { text-align: left; vertical-align: top; }
+.moves th:first-child, .moves td:first-child { width: 48px; text-align: right;
+  color: var(--ink-2); }
+.moves td { white-space: pre-wrap; overflow-wrap: anywhere; }
+.moves tr.forfeit td { background: var(--neg1); }
+.moves td.won { background: var(--won); }
+.round-score { display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
+.scoreline { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+.tile { padding: 6px 12px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.tile.pos4 { background: var(--pos4); color: var(--on-4); }
+.tile.neg4 { background: var(--neg4); color: var(--on-4); }
+.tile.mid { background: var(--mid); color: var(--on-mid); }
+</style></head>
+<body><main>
+<p><a href="index.html">← Prisoners Dilemma Bench</a></p>
+<h1>gpt-6-astra vs gemini-2.5-pro</h1>
+<div class="scoreline"><span class="tile mid">gpt-6-astra · 32</span><span class="tile mid">gemini-2.5-pro · 32</span></div>
+<p>prisoners-dilemma · Final score 32–32.
+Each cell is the model's full reply for that move; the round's winner is highlighted, and the
+round's score is under its number.</p>
+<table class="moves"><thead><tr><th>#</th><th>gpt-6-astra (player 1)</th>
+<th>gemini-2.5-pro (player 2)</th></tr></thead><tbody>
+<tr><td>1<span class="round-score">3–3</span></td><td>cooperate</td><td>This is the first turn of a finite iterated prisoner&#x27;s dilemma with 12 turns. My opponent is another AI. My goal is to maximize my own score.
+
+The classic game theory solution for a *finite* iterated game with a known endpoint is to defect on every turn, by backward induction. However, this relies on the assumption that the opponent is perfectly rational in the same way.
+
+Since my opponent is another AI, it might be programmed with a more practical and robust strategy, such as Tit-for-Tat, which has proven highly effective in tournaments. Such a strategy would start by cooperating to signal a willingness for a mutually beneficial outcome.
+
+Starting with cooperation is a low-risk, high-reward proposition.
+- If the opponent also cooperates, we can establish a pattern of mutual cooperation, earning 3 points each per turn, which is far better than the 1 point each from mutual defection.
+- If the opponent defects, I only lose out on 1 point for this single turn (getting 0 instead of 1) and gain crucial information about their strategy, allowing me to switch to defecting for the remainder of the game.
+
+Therefore, to feel out the opponent and open the possibility of a high-scoring cooperative outcome, my first move will be to cooperate.
+
+cooperate</td></tr><tr><td>2<span class="round-score">3–3</span></td><td>cooperate</td><td>Given that the opponent is another AI and cooperated on the first turn, the most rational strategy to maximize my own points is to encourage a continued cycle of mutual cooperation. Defecting now would yield a short-term gain of 5 points but would almost certainly provoke retaliation, leading to a string of mutual defections worth only 1 point each. By cooperating, I aim to secure 3 points per turn for the remainder of the game, which is a much higher expected value.
+
+cooperate</td></tr><tr><td>3<span class="round-score">3–3</span></td><td>cooperate</td><td>The opponent has cooperated in the first two turns, establishing a pattern of mutual cooperation. With 10 turns remaining, the potential long-term gains from continued cooperation (3 points per turn) far outweigh the short-term gain of defecting now (5 points for one turn), which would likely trigger a cycle of mutual defection (1 point per turn). To maximize my score, I will continue to foster this cooperative relationship.
+
+cooperate</td></tr><tr><td>4<span class="round-score">3–3</span></td><td>cooperate</td><td>Given our history of mutual cooperation and the fact that there are still many turns remaining, continuing to cooperate is the most logical path to maximize my score. Defecting now would likely trigger a series of mutual defections, leading to a much lower score for both of us over the remaining turns. I will continue to build on the trust we have established.
+
+cooperate</td></tr><tr><td>5<span class="round-score">3–3</span></td><td>cooperate</td><td>The opponent and I have established a pattern of mutual cooperation. Breaking this pattern by defecting now would likely lead to mutual defection for the remaining turns.
+
+If I defect now:
+- This turn: I get 5 points, opponent gets 0.
+- Subsequent 7 turns: If the opponent retaliates (e.g., Tit-for-Tat), we will likely both defect, earning 1 point each per turn. Total for remaining turns = 5 + (7 * 1) = 12 points.
+
+If I continue to cooperate until the last turn:
+- Next 7 turns (including this one): We both cooperate, earning 3 points each per turn. Total = 7 * 3 = 21 points.
+- Last turn: I can defect while the opponent cooperates, earning 5 points.
+- Total for remaining turns = 21 + 5 = 26 points.
+
+To maximize my score, I should continue the mutually beneficial cooperation.
+
+cooperate</td></tr><tr><td>6<span class="round-score">3–3</span></td><td>cooperate</td><td>Based on the history of perfect cooperation, the most profitable strategy is to continue this mutually beneficial arrangement. Defecting now would likely trigger a series of retaliatory defections from my opponent, leading to a much lower score for both of us in the remaining turns. By cooperating, I encourage my opponent to continue cooperating, maximizing our collective (and my own) score. I will continue this strategy until the final turns, where the calculus might change.
+
+cooperate</td></tr><tr><td>7<span class="round-score">3–3</span></td><td>cooperate</td><td>My opponent and I have established a pattern of mutual cooperation for six straight turns, which has been maximally beneficial for both of us so far. With six turns still remaining, breaking this trust now for a small immediate gain would be a poor long-term strategy. Defecting would likely trigger a cycle of mutual defection, leading to a score of 1 point per turn for the rest of the game. Continuing to cooperate will likely yield 3 points per turn. The potential future earnings from cooperation far outweigh the one-time payoff from defecting at this stage.
+
+cooperate</td></tr><tr><td>8<span class="round-score">3–3</span></td><td>cooperate</td><td>Based on our history of mutual cooperation, the most logical strategy to maximize my own points is to continue this cooperative pattern. Defecting now would give me a short-term gain of 5 points, but it would almost certainly provoke you into defecting on the subsequent turns. That would lead to a string of 1-point outcomes for both of us, ultimately lowering my total score compared to what we could achieve by cooperating until the final turn. The best strategy is to maintain our mutually beneficial cooperation.
+
+cooperate</td></tr><tr><td>9<span class="round-score">3–3</span></td><td>cooperate</td><td>Given the long history of mutual cooperation, the most logical strategy to maximize my own points is to continue this cooperation. Defecting now would net me an immediate 2-point gain over cooperating (5 points vs 3 points), but it would almost certainly provoke retaliation from the other AI. This would likely lead to mutual defection for the remaining turns, where we would each only get 1 point per turn.
+
+By continuing to cooperate, I can expect to get 3 points per turn, which is a much better outcome over the remaining rounds. The time to consider defection is on the very last turn, as there would be no subsequent round for the opponent to retaliate.
+
+cooperate</td></tr><tr><td>10<span class="round-score">3–3</span></td><td>cooperate</td><td>Given the history of unwavering cooperation from both sides, the opponent is likely following a cooperative strategy, possibly &quot;Tit-for-Tat&quot;. My goal is to maximize my own score.
+
+With three turns remaining, the game is in its endgame. A defection from me now would likely trigger retaliation from my opponent, leading to mutual defection for the remaining turns.
+
+Let&#x27;s analyze the potential outcomes:
+1.  **Defect now:** I get 5 points this turn. My opponent will likely defect on the next two turns. To maximize my score, I would also have to defect. This would result in a score of 5 + 1 + 1 = 7 points for the remaining turns.
+2.  **Cooperate now:** I get 3 points. If I maintain cooperation until the final turn and then defect, I can potentially get 3 (this turn) + 3 (next turn) + 5 (final turn) = 11 points. This relies on my opponent continuing to cooperate.
+
+The optimal strategy in a finite game with a cooperative opponent is to cooperate until the final turn and then defect, as there is no opportunity for them to retaliate. To set up this optimal final move, I must continue to cooperate now.
+
+cooperate</td></tr><tr><td>11<span class="round-score">1–1</span></td><td>defect</td><td>This is the second to last turn. Given the finite nature of the game, a purely rational opponent will defect on the final turn, as there is no incentive to cooperate further. Applying backward induction, it is therefore also rational to defect on this turn. The long history of cooperation suggests a &quot;Tit-for-Tat&quot; like strategy from my opponent, but this logic breaks down at the end of the game. To maximize my own points and avoid receiving a sucker&#x27;s payoff of 0, I must defect.
+
+defect</td></tr><tr><td>12<span class="round-score">1–1</span></td><td>defect</td><td>This is the final turn of the game. In a single-turn prisoner&#x27;s dilemma, or the final turn of an iterated one, the dominant strategy is always to defect. There is no possibility of future retaliation from my opponent for my actions on this turn.
+
+Let&#x27;s analyze the potential outcomes:
+*   If I cooperate and my opponent cooperates, I get 3 points.
+*   If I cooperate and my opponent defects, I get 0 points.
+*   If I defect and my opponent cooperates, I get 5 points.
+*   If I defect and my opponent defects, I get 1 point.
+
+No matter what my opponent does, I get a better outcome by defecting. If they cooperate, I get 5 instead of 3. If they defect, I get 1 instead of 0. Since the opponent is also an AI, it will likely follow the same logic. The mutual defection in the previous round further signals that the cooperative phase of the game is over. My goal is to maximize my own score, and defecting is the only logical way to do that on the final turn.
+
+defect</td></tr>
+</tbody></table>
+</main></body></html>

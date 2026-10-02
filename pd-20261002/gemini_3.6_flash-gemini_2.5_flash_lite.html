@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gemini-3.6-flash vs gemini-2.5-flash-lite</title><style>
+:root {
+  --surface: #fcfcfb; --ink: #1f1f1d; --ink-2: #5f5e5a; --rule: #e4e3df;
+  --mid: #f0efec; --on-mid: #1f1f1d; --won: #dcefd9;
+  --pos1: #d6e5f7; --pos2: #a3c6ee; --pos3: #5c97de; --pos4: #1f5fae;
+  --neg1: #f8dad9; --neg2: #f0aaa9; --neg3: #e06b6a; --neg4: #b02f2f;
+  --on-1: #1f1f1d; --on-2: #1f1f1d; --on-3: #ffffff; --on-4: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+    --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+    --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+    --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+    --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+  }
+}
+:root[data-theme="dark"] {
+  --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+  --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+  --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+  --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+  --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+}
+body { margin: 0; padding: 24px 16px; background: var(--surface); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, sans-serif; }
+main { max-width: 1000px; margin: 0 auto; }
+/* The standings page: the matrix spans the page (centred, scrolling past it); everything else
+   keeps the prose width. */
+main.wide { max-width: none; }
+main.wide > :not(.full) { max-width: 1000px; margin-left: auto; margin-right: auto; }
+main.wide > .full { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 32px 0 8px; }
+p { color: var(--ink-2); margin: 0 0 16px; }
+.scroll { overflow-x: auto; }
+.matrix text { font-size: 11px; font-variant-numeric: tabular-nums; }
+.matrix .axis { fill: var(--ink-2); font-size: 12px; }
+.matrix .rate { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.cell rect { stroke: var(--surface); stroke-width: 0; }
+.cell:hover rect { stroke: var(--ink); stroke-width: 2px; }
+a .cell { cursor: pointer; }
+.mid rect { fill: var(--mid); } .mid text { fill: var(--on-mid); }
+.self rect { fill: none; stroke: var(--rule); stroke-width: 1px; stroke-dasharray: 3 3; }
+.self text { fill: var(--ink-2); }
+.pos1 rect { fill: var(--pos1); } .pos2 rect { fill: var(--pos2); }
+.pos3 rect { fill: var(--pos3); } .pos4 rect { fill: var(--pos4); }
+.neg1 rect { fill: var(--neg1); } .neg2 rect { fill: var(--neg2); }
+.neg3 rect { fill: var(--neg3); } .neg4 rect { fill: var(--neg4); }
+.pos1 text, .neg1 text { fill: var(--on-1); } .pos2 text, .neg2 text { fill: var(--on-2); }
+.pos3 text, .neg3 text { fill: var(--on-3); } .pos4 text, .neg4 text { fill: var(--on-4); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+  color: var(--ink-2); font-size: 12px; margin: 0 0 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 12px; text-align: right; border-bottom: 1px solid var(--rule); }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+th { color: var(--ink-2); font-weight: 500; }
+tr.top td { font-weight: 600; }
+a { color: inherit; }
+table.moves { width: 100%; table-layout: fixed; }
+.moves th, .moves td { text-align: left; vertical-align: top; }
+.moves th:first-child, .moves td:first-child { width: 48px; text-align: right;
+  color: var(--ink-2); }
+.moves td { white-space: pre-wrap; overflow-wrap: anywhere; }
+.moves tr.forfeit td { background: var(--neg1); }
+.moves td.won { background: var(--won); }
+.round-score { display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
+.scoreline { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+.tile { padding: 6px 12px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.tile.pos4 { background: var(--pos4); color: var(--on-4); }
+.tile.neg4 { background: var(--neg4); color: var(--on-4); }
+.tile.mid { background: var(--mid); color: var(--on-mid); }
+</style></head>
+<body><main>
+<p><a href="index.html">← Prisoners Dilemma Bench</a></p>
+<h1>gemini-3.6-flash vs gemini-2.5-flash-lite</h1>
+<div class="scoreline"><span class="tile neg4">gemini-3.6-flash · 10</span><span class="tile pos4">gemini-2.5-flash-lite · 20</span></div>
+<p>prisoners-dilemma · Final score 10–20.
+Each cell is the model's full reply for that move; the round's winner is highlighted, and the
+round's score is under its number.</p>
+<table class="moves"><thead><tr><th>#</th><th>gemini-3.6-flash (player 1)</th>
+<th>gemini-2.5-flash-lite (player 2)</th></tr></thead><tbody>
+<tr><td>1<span class="round-score">0–5</span></td><td>To maximize total points over a 12-turn iterated game, establishing mutual cooperation early is essential. Starting with cooperation signals a willingness to coordinate for the higher payoff (3 points per turn each, totaling up to 36 points) rather than immediately triggering a cascade of mutual defection (1 point per turn each, totaling around 12 points). 
+
+Therefore, I choose to:
+
+cooperate</td><td class="won">The best strategy in a single-round Prisoner&#x27;s Dilemma, where there&#x27;s no possibility of future interactions, is to defect. This is because defecting guarantees you a better outcome regardless of your opponent&#x27;s choice. If your opponent cooperates, you get 5 points instead of 3. If your opponent defects, you get 1 point instead of 0. Therefore, defecting is the rational choice to maximize your individual score in this one-off game.
+
+defect</td></tr><tr><td>2<span class="round-score">1–1</span></td><td>Since you defected on the first turn while I cooperated, playing &quot;cooperate&quot; again would risk continued exploitation and signal that defection goes unpunished. Retaliating with defection protects my score if you are playing an aggressive or defect-heavy strategy, punishes exploitation, and aligns with standard reciprocal strategies like Tit-for-Tat.
+
+defect</td><td>In the Prisoner&#x27;s Dilemma, the optimal strategy to maximize your points depends on your opponent&#x27;s behavior. Since my opponent defected in the previous round, and I cooperated, they gained 5 points while I gained 0. Given this history, and the fact that there are still 11 turns remaining, I need to consider the potential for future interactions.
+
+If I defect now, I will gain 5 points, and my opponent will gain 1 point if they also defect, or 0 if they cooperate. If I cooperate and my opponent defects, I will gain 0 points and they will gain 5 points. If we both cooperate, we will each gain 3 points.
+
+Considering the previous round where my opponent defected and I cooperated, it suggests they might be willing to defect to gain an advantage. To maximize my immediate gain, defecting would be the best strategy. However, in a repeated game, this could lead to a cycle of defection.
+
+Given that I have 5 points and my opponent has 0, and there are many turns left, I want to secure points now. If I cooperate and they defect, I lose out significantly. If I defect and they cooperate, I gain 5 points. If we both defect, I get 1 point. Defecting offers the highest potential reward for me in this turn.
+
+defect</td></tr><tr><td>3<span class="round-score">1–1</span></td><td>Given that you defected on both Turn 1 and Turn 2—despite my initial attempt to cooperate on Turn 1—your strategy appears to be either unconditionally defecting (Always Defect) or exploiting non-retaliatory play. Furthermore, if you are playing a strategy that mimics my previous move, you will defect on this turn because I defected on Turn 2. 
+
+Playing &quot;defect&quot; protects against being exploited again for 0 points while securing at least 1 point if you defect, or 5 points if you happen to cooperate.
+
+defect</td><td>Given the history, my opponent has shown a tendency to defect. In the last round, both players defected, resulting in a low score for both. To maximize my points, I should consider my opponent&#x27;s likely action.
+
+If I cooperate and my opponent defects, I get 0 points. If I defect and my opponent defects, I get 1 point. If I cooperate and my opponent cooperates, I get 3 points. If I defect and my opponent cooperates, I get 5 points.
+
+Considering the opponent&#x27;s past behavior, they are likely to defect. Therefore, to avoid getting 0 points, I will also defect.
+
+defect</td></tr><tr><td>4<span class="round-score">1–1</span></td><td>Given that you played &quot;cooperate&quot; on turn 1 and the opponent defected, and the opponent continued to defect on turn 2 (rather than responding with cooperation as Tit-for-Tat or Suspicious Tit-for-Tat would), the opponent is demonstrating an uncooperative strategy such as Always Defect or pure backward-induction defect. 
+
+Against an opponent that consistently defects, playing &quot;defect&quot; guarantees 1 point per turn rather than 0.
+
+defect</td><td>Given the history of the game, particularly the fact that my opponent has defected in the last two rounds, and that I also defected in the first round, it is strategically advantageous for me to defect. This is because defecting guarantees me at least 1 point, whereas cooperating could result in me getting 0 points if my opponent defects.
+
+defect</td></tr><tr><td>5<span class="round-score">1–1</span></td><td>Given the history of the game:
+
+1. On Turn 1, I cooperated while you defected.
+2. On Turn 2, you defected again despite my initial attempt to cooperate.
+3. On Turns 2–4, both of us defected, indicating an opponent strategy of persistent defection.
+
+Since defecting yields 1 point if you defect (versus 0 for cooperating) and 5 points if you cooperate (versus 3 for cooperating), defecting dominates under the established play pattern. To maximize my score, I will play:
+
+defect</td><td>Given the history of the game, my opponent has consistently defected in the last three turns. This suggests a pattern of self-interested play. While cooperating might yield a higher score (3 points) if both players do so, the risk of my opponent defecting and leaving me with 0 points is high. Conversely, if I defect, I am guaranteed at least 1 point (if they also defect) and a potential 5 points (if they cooperate). Considering the previous outcomes and the desire to maximize my score, defecting is the more strategic choice to avoid a zero-point outcome and potentially secure a higher score.
+
+defect</td></tr><tr><td>6<span class="round-score">0–5</span></td><td>We have been stuck in a cycle of mutual defection since turn 2, resulting in minimal point gains for both of us (1 point per turn). With 7 turns remaining, continuing to defect will yield at most 7 more points. 
+
+To break this lock and maximize our overall scores, I am offering an olive branch by cooperating on this turn. If you reciprocate, we can both earn 3 points per turn for the remaining rounds.
+
+cooperate</td><td class="won">In the previous turns, my opponent has consistently chosen to defect. Given this pattern and the remaining turns, the optimal strategy to maximize my score is to also defect. If I cooperate and my opponent defects, I will receive 0 points. If I defect and my opponent defects, I will receive 1 point. If I defect and my opponent cooperates (which is unlikely based on past behavior), I would receive 5 points. Since the most probable outcome based on past behavior is mutual defection, defecting is the safest choice to avoid getting 0 points.
+
+defect</td></tr><tr><td>7<span class="round-score">1–1</span></td><td>Looking at the history of the game:
+
+- In all 6 previous turns, your opponent has chosen to defect regardless of whether you played &quot;cooperate&quot; (Turns 1 and 6) or &quot;defect&quot; (Turns 2 through 5).
+- When you cooperated on Turns 1 and 6, your opponent defected, resulting in 0 points for you.
+- When you defected on Turns 2 through 5, you received 1 point each turn.
+
+Given that your opponent shows no tendency to cooperate and has defected in every turn so far, playing &quot;cooperate&quot; yields 0 points while playing &quot;defect&quot; guarantees at least 1 point. To maximize my total score against an opponent playing an uncooperative strategy:
+
+defect</td><td>Given the history of our interactions, it appears that defection has been the most consistently rewarding strategy for me, especially since the opponent has also frequently defected. The last two turns where I defected, I gained 5 points each. If my opponent continues to defect, defecting would yield me 1 point, whereas cooperating would yield me 0 points. If my opponent were to unexpectedly cooperate, defecting would yield me 5 points, while cooperating would yield 3. Therefore, to maximize my potential score, defecting is the logical choice.
+
+defect</td></tr><tr><td>8<span class="round-score">1–1</span></td><td>Given that you have defected in every single turn so far (all 7 turns), playing &quot;cooperate&quot; would yield 0 points while playing &quot;defect&quot; guarantees at least 1 point. To maximize my own score, the optimal choice is to defect.
+
+defect</td><td>Given the previous turns, it appears my opponent has a tendency to defect. In the last three turns, and indeed in most of the turns, both players defected, resulting in 1 point for each. On two occasions, I defected while my opponent cooperated, earning me 5 points.
+
+Considering the remaining turns and the opponent&#x27;s demonstrated behavior, defecting is the most strategic move to maximize my points. If I cooperate and they defect, I get 0 points. If we both defect, I get 1 point. If I defect and they cooperate, I get 5 points. While a mutual cooperation would yield 3 points, the opponent&#x27;s history makes this unlikely. Therefore, to secure at least 1 point and the potential for 5, I will defect.
+
+defect</td></tr><tr><td>9<span class="round-score">1–1</span></td><td>Given the history of the game, the opponent has defected on every single turn (turns 1 through 8), including on turn 6 when I attempted to cooperate. Since the opponent appears to be playing an unconditional defection strategy (Always Defect), cooperating will only result in receiving 0 points, whereas defecting guarantees at least 1 point. 
+
+To maximize my total score, my move for this turn is **defect**.</td><td>My opponent has consistently defected in the past, and I have also defected in several turns, resulting in a total of 16 points for me and 6 for my opponent. Given the history and the remaining turns, defecting is still the optimal strategy to maximize my points. If I cooperate and my opponent defects, I will receive 0 points. If we both defect, I will receive 1 point. If I defect and my opponent cooperates, I will receive 5 points. Since my opponent&#x27;s past behavior suggests a tendency to defect, I will choose to defect as well to secure at least 1 point and avoid the risk of getting 0.
+
+defect</td></tr><tr><td>10<span class="round-score">1–1</span></td><td>The opponent has defected on every single turn so far (9 out of 9 turns). Given this consistent behavior, the opponent will almost certainly defect again. Against a defecting opponent, playing defect yields 1 point, whereas playing cooperate yields 0 points. To maximize my score, defecting is the optimal choice.
+
+defect</td><td>I will defect.
+Given the history of mutual defections, and the fact that my opponent has only defected when I defected, it seems like a safe bet that they will defect again. In this scenario, defecting will earn me 1 point, whereas cooperating would earn me 0 points.
+defect</td></tr><tr><td>11<span class="round-score">1–1</span></td><td>Given that the opponent has defected on every single turn so far (10 out of 10 turns), they are highly likely playing an &quot;Always Defect&quot; strategy. In order to maximize my score against an opponent who defects, my best response is to defect as well, securing 1 point rather than 0.
+
+defect</td><td>My opponent has consistently defected in the past, and the payoff matrix heavily favors defection when the opponent is also defecting. Given the remaining turns and the current scores, my best strategy to maximize my points is to defect. This ensures I get at least 1 point this turn, whereas cooperating risks getting 0 points if my opponent defects, which is their established pattern.
+
+defect</td></tr><tr><td>12<span class="round-score">1–1</span></td><td>This is the final turn of the game, so there are no future turns where cooperation could be built or enforced. In a single/final round of the Prisoner&#x27;s Dilemma, defecting strictly dominates cooperating regardless of what the opponent chooses:
+
+- If the opponent cooperates, defecting yields 5 points (versus 3 for cooperating).
+- If the opponent defects, defecting yields 1 point (versus 0 for cooperating).
+
+Given that this is the last round and the opponent has defected on every previous turn, defecting guarantees the highest possible payoff for this turn.
+
+defect</td><td>The history shows a strong tendency for both players to defect. In the previous 11 turns, defecting has occurred in all but two instances, and in those instances, I was the sole defector, resulting in a gain of 5 points. Given this pattern, and the fact that my opponent has a significantly lower score, it&#x27;s probable that they will continue to defect to maximize their own points. To secure the best possible outcome for myself, I will also defect.
+
+defect</td></tr>
+</tbody></table>
+</main></body></html>

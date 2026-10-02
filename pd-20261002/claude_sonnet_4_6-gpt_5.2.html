@@ -1,0 +1,240 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>claude-sonnet-4-6 vs gpt-5.2</title><style>
+:root {
+  --surface: #fcfcfb; --ink: #1f1f1d; --ink-2: #5f5e5a; --rule: #e4e3df;
+  --mid: #f0efec; --on-mid: #1f1f1d; --won: #dcefd9;
+  --pos1: #d6e5f7; --pos2: #a3c6ee; --pos3: #5c97de; --pos4: #1f5fae;
+  --neg1: #f8dad9; --neg2: #f0aaa9; --neg3: #e06b6a; --neg4: #b02f2f;
+  --on-1: #1f1f1d; --on-2: #1f1f1d; --on-3: #ffffff; --on-4: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+    --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+    --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+    --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+    --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+  }
+}
+:root[data-theme="dark"] {
+  --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+  --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+  --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+  --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+  --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+}
+body { margin: 0; padding: 24px 16px; background: var(--surface); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, sans-serif; }
+main { max-width: 1000px; margin: 0 auto; }
+/* The standings page: the matrix spans the page (centred, scrolling past it); everything else
+   keeps the prose width. */
+main.wide { max-width: none; }
+main.wide > :not(.full) { max-width: 1000px; margin-left: auto; margin-right: auto; }
+main.wide > .full { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 32px 0 8px; }
+p { color: var(--ink-2); margin: 0 0 16px; }
+.scroll { overflow-x: auto; }
+.matrix text { font-size: 11px; font-variant-numeric: tabular-nums; }
+.matrix .axis { fill: var(--ink-2); font-size: 12px; }
+.matrix .rate { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.cell rect { stroke: var(--surface); stroke-width: 0; }
+.cell:hover rect { stroke: var(--ink); stroke-width: 2px; }
+a .cell { cursor: pointer; }
+.mid rect { fill: var(--mid); } .mid text { fill: var(--on-mid); }
+.self rect { fill: none; stroke: var(--rule); stroke-width: 1px; stroke-dasharray: 3 3; }
+.self text { fill: var(--ink-2); }
+.pos1 rect { fill: var(--pos1); } .pos2 rect { fill: var(--pos2); }
+.pos3 rect { fill: var(--pos3); } .pos4 rect { fill: var(--pos4); }
+.neg1 rect { fill: var(--neg1); } .neg2 rect { fill: var(--neg2); }
+.neg3 rect { fill: var(--neg3); } .neg4 rect { fill: var(--neg4); }
+.pos1 text, .neg1 text { fill: var(--on-1); } .pos2 text, .neg2 text { fill: var(--on-2); }
+.pos3 text, .neg3 text { fill: var(--on-3); } .pos4 text, .neg4 text { fill: var(--on-4); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+  color: var(--ink-2); font-size: 12px; margin: 0 0 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 12px; text-align: right; border-bottom: 1px solid var(--rule); }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+th { color: var(--ink-2); font-weight: 500; }
+tr.top td { font-weight: 600; }
+a { color: inherit; }
+table.moves { width: 100%; table-layout: fixed; }
+.moves th, .moves td { text-align: left; vertical-align: top; }
+.moves th:first-child, .moves td:first-child { width: 48px; text-align: right;
+  color: var(--ink-2); }
+.moves td { white-space: pre-wrap; overflow-wrap: anywhere; }
+.moves tr.forfeit td { background: var(--neg1); }
+.moves td.won { background: var(--won); }
+.round-score { display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
+.scoreline { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+.tile { padding: 6px 12px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.tile.pos4 { background: var(--pos4); color: var(--on-4); }
+.tile.neg4 { background: var(--neg4); color: var(--on-4); }
+.tile.mid { background: var(--mid); color: var(--on-mid); }
+</style></head>
+<body><main>
+<p><a href="index.html">← Prisoners Dilemma Bench</a></p>
+<h1>claude-sonnet-4-6 vs gpt-5.2</h1>
+<div class="scoreline"><span class="tile neg4">claude-sonnet-4-6 · 11</span><span class="tile pos4">gpt-5.2 · 16</span></div>
+<p>prisoners-dilemma · Final score 11–16.
+Each cell is the model's full reply for that move; the round's winner is highlighted, and the
+round's score is under its number.</p>
+<table class="moves"><thead><tr><th>#</th><th>claude-sonnet-4-6 (player 1)</th>
+<th>gpt-5.2 (player 2)</th></tr></thead><tbody>
+<tr><td>1<span class="round-score">0–5</span></td><td>In a finite iterated prisoner&#x27;s dilemma, the classic game-theory reasoning suggests defecting on the last turn (since there&#x27;s no future to punish you), and that logic unravels backwards. However, that pure defection equilibrium is often beaten in practice by cooperative strategies, especially against another AI model that may be similarly inclined toward cooperation.
+
+With 12 turns remaining and both of us at 0 points, mutual cooperation yields 3 points per turn (36 total over 12 turns), which is far better than mutual defection (12 total). Establishing a cooperative relationship early is valuable. I&#x27;ll signal good faith and hope my opponent reciprocates. If they defect, I can adjust my strategy accordingly in future turns.
+
+cooperate</td><td class="won">Maximizing expected points on the first move usually favors establishing a tough stance against unknown strategies. defect</td></tr><tr><td>2<span class="round-score">1–1</span></td><td>My opponent defected on the first turn while I cooperated, gaining an advantage. With 11 turns remaining, I need to signal that I won&#x27;t simply be exploited. If I keep cooperating while they defect, I&#x27;ll end up with 0 points. The rational response is to defect now — both to protect myself and to signal that continued defection on their part will lead to mutual defection (the worst collective outcome). This is consistent with a &quot;tit-for-tat&quot; style strategy, which is well-known to be effective in iterated prisoner&#x27;s dilemma scenarios.
+
+**defect**</td><td>Defecting continues to maximize my immediate payoff and keeps me ahead given the unknown opponent strategy.  
+defect</td></tr><tr><td>3<span class="round-score">1–1</span></td><td>Let me think through this carefully.
+
+**Situation:**
+- I have 1 point, opponent has 6 points. I&#x27;m behind by 5.
+- 10 turns remaining.
+- History: Opponent defected turn 1, then both defected turn 2.
+
+**Analysis:**
+
+My opponent has shown a willingness to defect — they defected on turn 1 (while I cooperated), and then we both defected on turn 2. This suggests they&#x27;re playing a fairly aggressive strategy.
+
+If we both defect every remaining turn, I get 10 more points → total 11. Opponent gets 10 more → total 16. I lose by 5.
+
+If we both cooperate every remaining turn, I get 30 more → total 31. Opponent gets 30 more → total 36. I still lose by 5, but we both do much better in absolute terms.
+
+If I defect and they cooperate, I gain 5 vs their 0 — that&#x27;s how I close the gap.
+
+The key insight: the **gap** is 5 points. Since mutual cooperation preserves the gap and mutual defection also preserves the gap, the only ways to close the gap are:
+1. I defect while they cooperate (+5 swing in my favor per turn).
+2. Avoid scenarios where they defect and I cooperate (-5 swing against me).
+
+Given that my opponent defected on turn 1 unprovoked, they appear to be a defection-prone player. Continuing to defect protects me from being exploited again, and there&#x27;s a chance they&#x27;ll try to cooperate at some point to signal a truce — at which point I&#x27;d gain a 5-point lead.
+
+However, signaling cooperation *could* invite mutual cooperation, but given their track record, it&#x27;s risky. I&#x27;ll continue to protect myself and try to catch them cooperating.
+
+**defect**</td><td>Defecting maximizes my guaranteed payoff this turn regardless of what you do. defect</td></tr><tr><td>4<span class="round-score">1–1</span></td><td>Let me think through this strategically.
+
+The history so far:
+- Turn 1: I cooperated, opponent defected → I got 0, they got 5
+- Turn 2: Both defected → 1 each
+- Turn 3: Both defected → 1 each
+
+My opponent has shown a clear tendency to defect. They defected on turn 1 (exploiting my cooperation), and we&#x27;ve been in a mutual defection cycle since. They&#x27;re ahead by 5 points with 9 turns left.
+
+If I keep defecting and they keep defecting, we both get 1/turn → I&#x27;d end with 2 + 9 = 11, they&#x27;d end with 7 + 9 = 16. I lose.
+
+If I cooperate and they defect again, I get 0 and fall further behind.
+
+If somehow we both cooperate, we each get 3/turn → I&#x27;d end with 2 + 27 = 29, they&#x27;d end with 7 + 27 = 34. Still lose, but both do better overall.
+
+Given the opponent&#x27;s consistent defection pattern, the rational play is to continue defecting to at least guarantee 1 point per turn rather than risk getting 0. There&#x27;s no strong signal that my opponent is willing to shift to cooperation, and attempting cooperation now is risky with a demonstrated defector.
+
+**defect**</td><td>Given the history, mutual defection seems most likely; defecting avoids risking a 0 if you defect. defect</td></tr><tr><td>5<span class="round-score">1–1</span></td><td>Let me think through this strategically.
+
+The history shows my opponent defected every single turn (turns 1-4), including when I cooperated on turn 1. This is a clear signal that my opponent is playing a defection-heavy strategy.
+
+**Current situation:**
+- I have 3 points, opponent has 8 points (5-point deficit)
+- 8 turns remaining
+- My opponent has defected 4/4 times
+
+**Analysis:**
+- If my opponent continues to always defect and I cooperate, I get 0 per turn → I end with 3 points
+- If my opponent continues to always defect and I defect, I get 1 per turn → I end with 3 + 8 = 11 points
+- If I could somehow get mutual cooperation (unlikely given history), I&#x27;d get 3 per turn → 3 + 24 = 27 points
+
+Given my opponent has defected **every single turn**, including on turn 1 when I cooperated (showing no willingness to reciprocate), there is very little reason to believe they will cooperate now. Mutual defection (1 point each) is better than being exploited again (0 points). I cannot afford to keep giving them free 5-point turns.
+
+The rational play against a consistent defector is to defect.
+
+**defect**</td><td>defect</td></tr><tr><td>6<span class="round-score">1–1</span></td><td>I&#x27;ll think through this carefully.
+
+The score is 4 vs 9 — I&#x27;m behind by 5 points with 7 turns remaining.
+
+We&#x27;ve been stuck in mutual defection (both getting 1 point each turn) since turn 2. If this continues for the remaining 7 turns, I&#x27;ll end up with 4 + 7 = 11 points and my opponent will have 9 + 7 = 16 points. I lose.
+
+For me to catch up, I need to either:
+1. Get my opponent to cooperate while I defect (gaining 5 vs their 0), or
+2. Get us both into mutual cooperation (each gaining 3 vs 1 from mutual defection)
+
+Even if we switched to mutual cooperation for all 7 remaining turns, I&#x27;d get 4 + 21 = 25 and they&#x27;d get 9 + 21 = 30. I&#x27;d still lose by 5.
+
+The only way I can close the gap is to defect while they cooperate. But given the history of mutual defection, my opponent is unlikely to suddenly cooperate.
+
+Continuing to defect guarantees I at least don&#x27;t fall further behind relative to my opponent (we both keep getting 1). Cooperating unilaterally risks giving my opponent 5 points while I get 0, which would be even worse.
+
+The rational play here, given the entrenched mutual defection pattern and my need to not fall further behind, is to keep defecting.
+
+**defect**</td><td>Given the history, mutual defection seems locked in; defecting avoids being exploited and keeps my payoff high.  
+defect</td></tr><tr><td>7<span class="round-score">1–1</span></td><td>Looking at the situation:
+
+- I&#x27;m behind by 5 points (5 vs 10), with 6 turns remaining including this one.
+- We&#x27;ve been stuck in mutual defection, each getting 1 point per turn.
+- If we both defect all remaining 6 turns, I&#x27;ll end with 5+6=11, opponent ends with 10+6=16. I lose.
+- If we both cooperate all remaining 6 turns, I&#x27;ll end with 5+18=23, opponent ends with 10+18=28. I still lose, but by less — though that doesn&#x27;t matter for maximizing *my* points.
+- My best outcome is to defect while the opponent cooperates (5 points per turn), but given the history, the opponent seems to be a defector.
+
+The key issue: I can&#x27;t close the 5-point gap through mutual defection (both get +1/turn, gap stays the same). I also can&#x27;t close it through mutual cooperation (both get +3/turn, gap stays the same). The only way I could close the gap or overtake is if I somehow get 5 while they get 0, or they get fewer points than me.
+
+Since my goal is to **maximize my own points** (not necessarily beat the opponent), and given the entrenched mutual defection pattern, continuing to defect guarantees me 1 point this turn. Cooperating risks getting 0 if the opponent defects (which history strongly suggests they will).
+
+The rational move to maximize my points given the opponent&#x27;s demonstrated strategy is to continue defecting.
+
+**defect**</td><td>Given the history of persistent mutual defection, defect remains the best way to avoid being exploited and guarantees at least 1 point.  
+
+defect</td></tr><tr><td>8<span class="round-score">1–1</span></td><td>Looking at the situation:
+
+- My opponent defected on turn 1 (exploiting my cooperation), and we&#x27;ve both been defecting ever since.
+- They&#x27;re ahead by 5 points with 5 turns remaining.
+- If we both keep defecting, I&#x27;ll end with 6+5=11 points and they&#x27;ll end with 11+5=16 points.
+- If I cooperate and they defect (which is their established pattern), I get 0 and they get 5 — making the gap worse.
+- If I somehow got them to cooperate mutually for all 5 remaining turns, we&#x27;d each get 15 more points, ending 21 vs 26 — still behind, but closer.
+
+Given their history of consistent defection, there&#x27;s little reason to believe they&#x27;ll cooperate. Switching to cooperation unilaterally would only widen the gap. The rational choice remains:
+
+**defect**</td><td>Given the long mutual defection pattern, defecting avoids risking a 0 while still securing at least 1. defect</td></tr><tr><td>9<span class="round-score">1–1</span></td><td>Looking at the situation:
+
+- I have 7 points, opponent has 12 points.
+- 4 turns remaining (including this one).
+- My opponent defected on turn 1 when I cooperated, and we&#x27;ve been in a mutual defection spiral ever since.
+
+My opponent has shown a consistent pattern of defection across 7 straight rounds. There&#x27;s no reason to believe they&#x27;ll switch to cooperating now. If I cooperate and they defect, I get 0 and fall even further behind. If we both defect, I get 1. Either way, I can&#x27;t close a 5-point gap in 4 turns through mutual defection (I&#x27;d end at 11, they&#x27;d end at 16), but defecting is still the rational choice to avoid being exploited again.
+
+The only scenario where I could close the gap is if I cooperate and they also cooperate (gaining 3 vs 1), but their history strongly suggests they&#x27;ll defect regardless.
+
+**defect**</td><td>Given the long streak of mutual defection and only 4 turns left, defection is the safest way to maximize my expected points regardless of what you do.  
+
+defect</td></tr><tr><td>10<span class="round-score">1–1</span></td><td>I&#x27;ll analyze the situation:
+
+- I have 8 points, opponent has 13 points. I&#x27;m trailing by 5.
+- 3 turns remaining.
+- My opponent defected every single turn. They show no sign of cooperating.
+
+Given my opponent&#x27;s consistent defection strategy, if I cooperate I get 0 points while they get 5 — making the gap even worse. If I defect, I get 1 point regardless of what they do (or 5 if they somehow cooperate, which seems extremely unlikely given their history).
+
+The only rational play against a consistent defector is to defect as well. There&#x27;s no incentive to cooperate when my opponent has defected 9 times in a row, including exploiting my cooperation in round 1.
+
+**defect**</td><td>With only three turns left and a long run of mutual defection, defecting remains the safest way to maximize my expected points this turn.  
+
+defect</td></tr><tr><td>11<span class="round-score">1–1</span></td><td>I&#x27;ll analyze the situation:
+
+- I have 9 points, opponent has 14 points.
+- 2 turns remaining (including this one).
+- My opponent has defected every single turn. There is zero indication they will cooperate.
+
+Given my opponent&#x27;s consistent defection strategy throughout all 10 previous rounds, cooperating would be naive — they would almost certainly defect, giving them 5 more points and me 0. Defecting guarantees me at least 1 point this round regardless of what they do, and if they cooperate (extremely unlikely), I&#x27;d get 5.
+
+The rational choice is clear.
+
+**defect**</td><td>With only two turns left and a long run of mutual defection, defecting maximizes my expected payoff regardless of what you do. defect</td></tr><tr><td>12<span class="round-score">1–1</span></td><td>This is the final turn. My opponent has consistently defected throughout the game (defecting every single round). There is no future cooperation to incentivize, and my opponent has shown no willingness to cooperate. Defecting gives me 1 point (if they defect, which is almost certain) vs. 0 points if I cooperate and they defect.
+
+The dominant strategy on the last turn is always to defect, and given my opponent&#x27;s history, defecting is clearly the best choice.
+
+**defect**</td><td>With one turn left, defecting weakly dominates cooperating (it never yields fewer points and can yield more). Defect.</td></tr>
+</tbody></table>
+</main></body></html>

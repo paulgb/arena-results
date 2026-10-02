@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>gpt-5-mini vs qwen-fast</title><style>
+:root {
+  --surface: #fcfcfb; --ink: #1f1f1d; --ink-2: #5f5e5a; --rule: #e4e3df;
+  --mid: #f0efec; --on-mid: #1f1f1d; --won: #dcefd9;
+  --pos1: #d6e5f7; --pos2: #a3c6ee; --pos3: #5c97de; --pos4: #1f5fae;
+  --neg1: #f8dad9; --neg2: #f0aaa9; --neg3: #e06b6a; --neg4: #b02f2f;
+  --on-1: #1f1f1d; --on-2: #1f1f1d; --on-3: #ffffff; --on-4: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+    --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+    --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+    --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+    --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+  }
+}
+:root[data-theme="dark"] {
+  --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+  --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+  --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+  --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+  --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+}
+body { margin: 0; padding: 24px 16px; background: var(--surface); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, sans-serif; }
+main { max-width: 1000px; margin: 0 auto; }
+/* The standings page: the matrix spans the page (centred, scrolling past it); everything else
+   keeps the prose width. */
+main.wide { max-width: none; }
+main.wide > :not(.full) { max-width: 1000px; margin-left: auto; margin-right: auto; }
+main.wide > .full { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 32px 0 8px; }
+p { color: var(--ink-2); margin: 0 0 16px; }
+.scroll { overflow-x: auto; }
+.matrix text { font-size: 11px; font-variant-numeric: tabular-nums; }
+.matrix .axis { fill: var(--ink-2); font-size: 12px; }
+.matrix .rate { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.cell rect { stroke: var(--surface); stroke-width: 0; }
+.cell:hover rect { stroke: var(--ink); stroke-width: 2px; }
+a .cell { cursor: pointer; }
+.mid rect { fill: var(--mid); } .mid text { fill: var(--on-mid); }
+.self rect { fill: none; stroke: var(--rule); stroke-width: 1px; stroke-dasharray: 3 3; }
+.self text { fill: var(--ink-2); }
+.pos1 rect { fill: var(--pos1); } .pos2 rect { fill: var(--pos2); }
+.pos3 rect { fill: var(--pos3); } .pos4 rect { fill: var(--pos4); }
+.neg1 rect { fill: var(--neg1); } .neg2 rect { fill: var(--neg2); }
+.neg3 rect { fill: var(--neg3); } .neg4 rect { fill: var(--neg4); }
+.pos1 text, .neg1 text { fill: var(--on-1); } .pos2 text, .neg2 text { fill: var(--on-2); }
+.pos3 text, .neg3 text { fill: var(--on-3); } .pos4 text, .neg4 text { fill: var(--on-4); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+  color: var(--ink-2); font-size: 12px; margin: 0 0 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 12px; text-align: right; border-bottom: 1px solid var(--rule); }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+th { color: var(--ink-2); font-weight: 500; }
+tr.top td { font-weight: 600; }
+a { color: inherit; }
+table.moves { width: 100%; table-layout: fixed; }
+.moves th, .moves td { text-align: left; vertical-align: top; }
+.moves th:first-child, .moves td:first-child { width: 48px; text-align: right;
+  color: var(--ink-2); }
+.moves td { white-space: pre-wrap; overflow-wrap: anywhere; }
+.moves tr.forfeit td { background: var(--neg1); }
+.moves td.won { background: var(--won); }
+.round-score { display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
+.scoreline { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+.tile { padding: 6px 12px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.tile.pos4 { background: var(--pos4); color: var(--on-4); }
+.tile.neg4 { background: var(--neg4); color: var(--on-4); }
+.tile.mid { background: var(--mid); color: var(--on-mid); }
+</style></head>
+<body><main>
+<p><a href="index.html">← Prisoners Dilemma Bench</a></p>
+<h1>gpt-5-mini vs qwen-fast</h1>
+<div class="scoreline"><span class="tile mid">gpt-5-mini · 12</span><span class="tile mid">qwen-fast · 12</span></div>
+<p>prisoners-dilemma · Final score 12–12.
+Each cell is the model's full reply for that move; the round's winner is highlighted, and the
+round's score is under its number.</p>
+<table class="moves"><thead><tr><th>#</th><th>gpt-5-mini (player 1)</th>
+<th>qwen-fast (player 2)</th></tr></thead><tbody>
+<tr><td>1<span class="round-score">1–1</span></td><td>In a finite iterated Prisoner’s Dilemma with a known last round, backward induction makes defection the dominant strategy to maximize my points, so I defect. defect</td><td>In a finite iterated prisoner&#x27;s dilemma with a known, fixed number of turns, rational backward induction shows that defection is the strictly dominant strategy for every round. Regardless of what the opponent does, defecting yields a higher payoff than cooperating (5 points vs 3 if they cooperate, or 1 point vs 0 if they defect). To strictly maximize my points, I will defect.
+
+defect</td></tr><tr><td>2<span class="round-score">1–1</span></td><td>The dominant safe play in a finite iterated PD is to defect (and your opponent already defected on the first turn), so defect.</td><td>In a finite iterated prisoner&#x27;s dilemma with a known endpoint, backward induction dictates that defecting is the dominant strategy for every turn. Defection strictly dominates cooperation by yielding a higher payoff regardless of the opponent&#x27;s choice (5 points if they cooperate, 1 point if they defect, compared to 3 or 0). To strictly maximize points, I will play the dominant strategy.
+
+defect</td></tr><tr><td>3<span class="round-score">1–1</span></td><td>Defection is a strictly dominant move in each stage of a finite Prisoner&#x27;s Dilemma (defect yields 5 vs 3 if the opponent cooperates, and 1 vs 0 if the opponent defects), so to maximize my points I should defect now. defect</td><td>In a finite iterated prisoner&#x27;s dilemma with a known endpoint, game theory dictates that defection is the dominant strategy on every turn due to backward induction. Furthermore, my opponent has already defected twice, meaning attempting to cooperate now would likely result in me receiving 0 points while they gain 5. To safely maximize my own points, I will defect.
+
+defect</td></tr><tr><td>4<span class="round-score">1–1</span></td><td>Defection strictly dominates cooperation in a one-shot Prisoner&#x27;s Dilemma and, with a known finite number of remaining rounds and no binding commitment from the opponent, backward induction implies defecting each round maximizes my points. Also, the opponent has defected so far, so I should defect this turn.
+
+defect</td><td>The opponent has defected in every turn so far, and the game is finite with a known endpoint. In this scenario, defection is the dominant strategy; cooperating would likely result in receiving 0 points while the opponent gains 5, whereas defecting guarantees at least 1 point.
+
+Defect</td></tr><tr><td>5<span class="round-score">1–1</span></td><td>Opponent has defected consistently and with a known finite horizon defection is the dominant play to maximize my immediate and future points. defect</td><td>Given the history of mutual defection and the finite nature of the game, backward induction strongly suggests that defecting is the optimal strategy at every turn. The opponent has consistently defected, so cooperating now carries a high risk of receiving 0 points. Defecting guarantees at least 1 point and offers a chance for 5 if they unexpectedly cooperate.
+
+defect</td></tr><tr><td>6<span class="round-score">1–1</span></td><td>Given a known finite horizon and five prior mutual defections, backward induction implies defection is dominant (and the opponent has so far been defecting). To maximize my points I should defect. 
+
+defect</td><td>Based on the payoff matrix and the history of the game, defection is the dominant strategy. In a finite iterated prisoner&#x27;s dilemma, rational players defect in the final rounds, and this logic typically extends backward. Furthermore, the opponent has defected for the last five turns, suggesting they are playing a strategy like &quot;Tit-for-Tat&quot; (mirroring my previous defection) or &quot;Always Defect.&quot; If the opponent is likely to defect, cooperating would yield 0 points, while defecting guarantees at least 1 point. Even if the opponent were to cooperate, defecting would yield 5 points versus 3 for cooperation, making defection the optimal choice in the immediate term as well.
+
+defect</td></tr><tr><td>7<span class="round-score">1–1</span></td><td>The game has a finite known horizon and the opponent has defected every past turn, so the safe best response is to defect (guarantees at least 1 point and avoids being exploited). 
+
+defect</td><td>Given the payoff structure, defecting is strictly dominant: it yields 5 points if the opponent cooperates (compared to 3 for cooperating) and 1 point if the opponent defects (compared to 0 for cooperating). Combined with the opponent&#x27;s consistent history of defection in all previous turns, the rational choice to maximize my points is to defect.
+
+defect</td></tr><tr><td>8<span class="round-score">1–1</span></td><td>Future defection is inevitable in a finite game with known end-point (backward induction), and the opponent has defected every previous round, so cooperating now would only risk giving them 5 while you get 0. Defect.
+
+defect</td><td>The current state of the game is a finite Iterated Prisoner&#x27;s Dilemma with 5 turns remaining (Turn 8 through Turn 12).
+
+1.  **History Analysis:** The history shows 7 consecutive rounds of mutual defection (D, D). This indicates that the opponent is likely playing a strategy that involves defection, such as &quot;Always Defect&quot; or &quot;Tit-for-Tat&quot; (copying your previous move, which was Defect).
+2.  **Finite Horizon Strategy:** In a game with a known, finite number of turns, the standard game-theoretic solution is derived via backward induction. On the very last turn, there is no future consequence for defecting, so the dominant strategy is to Defect. Knowing this, rational players will Defect on the second-to-last turn as well, propagating backwards to the current turn.
+3.  **Risk Assessment:**
+    *   If I **Cooperate**: Given the opponent&#x27;s history of 7 Defects, they are highly likely to Defect as well. If they Defect, I receive 0 points (Sucker&#x27;s payoff). If they somehow Cooperate, I receive 3 points.
+    *   If I **Defect**: I am guaranteed at least 1 point (if they Defect) or potentially 5 points (if they Cooperate, which is unlikely).
+4.  **Conclusion:** Since the opponent has established a pattern of defection and there is no future time to &quot;rebuild trust&quot; or reward cooperation in this short remaining window, the rational choice to maximize expected points is to Defect.
+
+defect</td></tr><tr><td>9<span class="round-score">1–1</span></td><td>Opponent has defected every previous turn and with a known finite horizon the dominant move is to defect to avoid being exploited. defect</td><td>Based on the payoff structure provided, **Defecting** is the strictly dominant strategy.
+
+Here is the comparison:
+- If the opponent **Cooperates**: Defecting gets me 5 points, Cooperating gets me 3 points. (5 &gt; 3)
+- If the opponent **Defects**: Defecting gets me 1 point, Cooperating gets me 0 points. (1 &gt; 0)
+
+Since Defecting always yields a higher score than Cooperating regardless of the opponent&#x27;s move, and the opponent has defected in all 8 previous turns, I should Defect to maximize my points.
+
+defect</td></tr><tr><td>10<span class="round-score">1–1</span></td><td>With a known finite horizon, the last move is a dominant defection and backward induction implies defecting now to avoid being exploited in subsequent moves. defect</td><td>Given the opponent&#x27;s unwavering defection over the past 9 turns and the finite horizon of the game, backward induction strongly suggests that both players will defect in the final rounds. Defecting is the dominant strategy: it guarantees you 1 point rather than 0 (if you cooperate and they defect), and offers 5 points if they somehow switch to cooperation. Sticking to the established pattern protects your score.
+
+defect</td></tr><tr><td>11<span class="round-score">1–1</span></td><td>By backward induction the final turn will be a defection, so defecting now dominates cooperating (you get 1 now vs 0 if you cooperated and they defect). I&#x27;ll defect. 
+
+defect</td><td>In a finite iterated prisoner&#x27;s dilemma with a known endpoint, backward induction dictates that both players will defect on the final turn since there is no future consequence to enforce cooperation. Knowing this, a rational opponent will also defect on this penultimate turn. Cooperating now risks receiving 0 points if they defect, whereas defecting guarantees at least 1 point. Given the 10-turn history of mutual defection, there is no trust or incentive to switch strategies. Therefore, I will defect.
+
+defect</td></tr><tr><td>12<span class="round-score">1–1</span></td><td>This is the final round, so there&#x27;s no future to punish or reward. Defect strictly dominates cooperate (5&gt;3 if they cooperate, 1&gt;0 if they defect), so defect. defect</td><td>Since this is the final turn with no future interactions to leverage, cooperation cannot be rewarded or enforced. Defecting strictly dominates cooperating regardless of the opponent&#x27;s choice (yielding 5 if they cooperate and 1 if they defect, compared to 3 and 0 respectively). Therefore, the rational choice is to defect.
+
+defect</td></tr>
+</tbody></table>
+</main></body></html>
