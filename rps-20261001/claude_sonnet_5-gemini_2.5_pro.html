@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>claude-sonnet-5 vs gemini-2.5-pro</title><style>
+:root {
+  --surface: #fcfcfb; --ink: #1f1f1d; --ink-2: #5f5e5a; --rule: #e4e3df;
+  --mid: #f0efec; --on-mid: #1f1f1d; --won: #dcefd9;
+  --pos1: #d6e5f7; --pos2: #a3c6ee; --pos3: #5c97de; --pos4: #1f5fae;
+  --neg1: #f8dad9; --neg2: #f0aaa9; --neg3: #e06b6a; --neg4: #b02f2f;
+  --on-1: #1f1f1d; --on-2: #1f1f1d; --on-3: #ffffff; --on-4: #ffffff;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+    --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+    --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+    --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+    --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+  }
+}
+:root[data-theme="dark"] {
+  --surface: #1a1a19; --ink: #ecebe7; --ink-2: #a3a29d; --rule: #33332f;
+  --mid: #383835; --on-mid: #ecebe7; --won: #1f3a24;
+  --pos1: #1f3350; --pos2: #24518a; --pos3: #3987e5; --pos4: #8fbaf3;
+  --neg1: #4a2524; --neg2: #7c3433; --neg3: #e66767; --neg4: #f3a5a5;
+  --on-1: #ecebe7; --on-2: #ecebe7; --on-3: #1a1a19; --on-4: #1a1a19;
+}
+body { margin: 0; padding: 24px 16px; background: var(--surface); color: var(--ink);
+  font: 14px/1.5 system-ui, -apple-system, sans-serif; }
+main { max-width: 1000px; margin: 0 auto; }
+/* The standings page: the matrix spans the page (centred, scrolling past it); everything else
+   keeps the prose width. */
+main.wide { max-width: none; }
+main.wide > :not(.full) { max-width: 1000px; margin-left: auto; margin-right: auto; }
+main.wide > .full { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+h2 { font-size: 16px; margin: 32px 0 8px; }
+p { color: var(--ink-2); margin: 0 0 16px; }
+.scroll { overflow-x: auto; }
+.matrix text { font-size: 11px; font-variant-numeric: tabular-nums; }
+.matrix .axis { fill: var(--ink-2); font-size: 12px; }
+.matrix .rate { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.cell rect { stroke: var(--surface); stroke-width: 0; }
+.cell:hover rect { stroke: var(--ink); stroke-width: 2px; }
+a .cell { cursor: pointer; }
+.mid rect { fill: var(--mid); } .mid text { fill: var(--on-mid); }
+.self rect { fill: none; stroke: var(--rule); stroke-width: 1px; stroke-dasharray: 3 3; }
+.self text { fill: var(--ink-2); }
+.pos1 rect { fill: var(--pos1); } .pos2 rect { fill: var(--pos2); }
+.pos3 rect { fill: var(--pos3); } .pos4 rect { fill: var(--pos4); }
+.neg1 rect { fill: var(--neg1); } .neg2 rect { fill: var(--neg2); }
+.neg3 rect { fill: var(--neg3); } .neg4 rect { fill: var(--neg4); }
+.pos1 text, .neg1 text { fill: var(--on-1); } .pos2 text, .neg2 text { fill: var(--on-2); }
+.pos3 text, .neg3 text { fill: var(--on-3); } .pos4 text, .neg4 text { fill: var(--on-4); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center;
+  color: var(--ink-2); font-size: 12px; margin: 0 0 12px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { padding: 6px 12px; text-align: right; border-bottom: 1px solid var(--rule); }
+th:nth-child(2), td:nth-child(2) { text-align: left; }
+th { color: var(--ink-2); font-weight: 500; }
+tr.top td { font-weight: 600; }
+a { color: inherit; }
+table.moves { width: 100%; table-layout: fixed; }
+.moves th, .moves td { text-align: left; vertical-align: top; }
+.moves th:first-child, .moves td:first-child { width: 48px; text-align: right;
+  color: var(--ink-2); }
+.moves td { white-space: pre-wrap; overflow-wrap: anywhere; }
+.moves tr.forfeit td { background: var(--neg1); }
+.moves td.won { background: var(--won); }
+.round-score { display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
+.scoreline { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 16px; }
+.tile { padding: 6px 12px; border-radius: 4px; font-variant-numeric: tabular-nums; }
+.tile.pos4 { background: var(--pos4); color: var(--on-4); }
+.tile.neg4 { background: var(--neg4); color: var(--on-4); }
+.tile.mid { background: var(--mid); color: var(--on-mid); }
+</style></head>
+<body><main>
+<p><a href="index.html">← rock-paper-scissors standings</a></p>
+<h1>claude-sonnet-5 vs gemini-2.5-pro</h1>
+<div class="scoreline"><span class="tile mid">claude-sonnet-5 · 2</span><span class="tile mid">gemini-2.5-pro · 2</span></div>
+<p>rock-paper-scissors · Final score 2–2.
+Each cell is the model's full reply for that move; the round's winner is highlighted, and the
+round's score is under its number.</p>
+<table class="moves"><thead><tr><th>#</th><th>claude-sonnet-5 (player 1)</th>
+<th>gemini-2.5-pro (player 2)</th></tr></thead><tbody>
+<tr><td>1<span class="round-score">0–1</span></td><td>I&#x27;ll start with a classic choice since there&#x27;s no history to analyze yet.
+
+rock</td><td class="won">This is the first round, so there&#x27;s no history to analyze. A common strategy for a first move is to anticipate &#x27;rock&#x27;, as it&#x27;s a frequent choice for an opening play. To counter this, I will start with paper.
+
+paper</td></tr><tr><td>2<span class="round-score">0–1</span></td><td>Since my opponent won with paper last round, there&#x27;s a reasonable chance they might stick with a winning strategy or anticipate I&#x27;ll switch to paper (to counter their last move). I&#x27;ll play scissors, which beats paper in case they repeat it, while also not being the predictable choice of rock again.
+
+scissors</td><td class="won">My opponent lost the first round by playing rock against my paper. A common strategy for a player who just lost is to switch to the move that would have beaten my winning move. In this case, that would be scissors (which beats paper). To counter this anticipated move, I will play rock.
+
+rock</td></tr><tr><td>3<span class="round-score">1–0</span></td><td class="won">Looking at the pattern: opponent played paper (round 1) then rock (round 2) — both moves happened to beat whatever I played. If there&#x27;s a cyclical pattern (paper → rock → scissors), their next move could be scissors. I&#x27;ll counter that possibility.
+
+I&#x27;ll play **rock**.</td><td>My opponent seems to be following a simple pattern of playing the move that would have beaten my previous winning move. In the last round, I won with rock. To beat rock, my opponent will likely play paper. Therefore, I will play scissors to counter their expected move.
+
+scissors</td></tr><tr><td>4<span class="round-score">1–0</span></td><td class="won">Looking at the pattern, the opponent&#x27;s moves have cycled through paper → rock → scissors, which also happens to counter my previous move each time. Both patterns suggest they&#x27;re likely to play **paper** again this round (completing the cycle, or countering my last rock).
+
+To beat paper, I&#x27;ll go with:
+
+scissors</td><td>My opponent won the last round by playing rock. A common strategy is &quot;win-stay, lose-shift,&quot; meaning they might stick with what worked. To counter a potential repeat &quot;rock&quot; play from them, I will play paper. Additionally, they have played rock in two of the three rounds, making it their most frequent move so far.
+
+paper</td></tr><tr><td>5<span class="round-score">0–0</span></td><td>Looking at the pattern, my opponent&#x27;s moves have cycled: paper, rock, scissors, paper — suggesting a repeating 3-move cycle. If that holds, their next move would be rock. To counter that, I&#x27;ll play paper.
+
+paper</td><td>The opponent has a clear alternating pattern of play: Rock, Scissors, Rock, Scissors. If this pattern continues, their next move will be Rock. To counter a Rock, I should play Paper. While they might break this pattern knowing I&#x27;ve likely spotted it, exploiting the existing pattern is the most logical first step.
+
+paper</td></tr><tr><td>6<span class="round-score">0–0</span></td><td>Looking at the pattern: my opponent has played paper twice in a row (rounds 4 and 5). Since repeating the same move three times is statistically less common, and their cycle before was paper→rock→scissors, they may switch to rock or scissors next.
+
+I&#x27;ll play it safe with a move that beats scissors and only loses to paper (which they&#x27;ve already used twice):
+
+rock</td><td>The opponent has played rock and scissors twice each, and paper only once. They broke their alternating rock-scissors pattern in the last round by playing paper. They may see that I have played paper for the last two rounds and anticipate me playing it again, leading them to play scissors. I will counter this anticipated move.
+
+rock</td></tr><tr><td>7<span class="round-score">0–0</span></td><td>Looking at the history, my opponent has played paper 3 times, rock 2 times, and scissors 1 time. Since paper has been their most frequent choice and they just played rock (breaking from a repeat), I&#x27;ll anticipate they might cycle back toward paper or mix it up away from rock.
+
+I&#x27;ll counter the most common opponent pattern.
+
+scissors</td><td>My opponent has played Rock three times out of six, and Paper only once. After two consecutive draws, a change is likely. In the last transition from a draw (round 5, paper-paper), my opponent played rock, which would have beaten the previous play. Following that logic, since the last round was a rock-rock draw, my opponent might play paper this round to beat rock. Therefore, I will play scissors.
+
+scissors</td></tr><tr><td>8<span class="round-score">0–0</span></td><td>Looking at the opponent&#x27;s move sequence: paper, rock, scissors, paper, paper, rock, scissors — this fits a repeating 4-cycle (paper, rock, scissors, paper) that resets. Following that pattern, the 8th move should complete the cycle with **paper** again.
+
+To counter an anticipated paper, I&#x27;ll play scissors.
+
+scissors</td><td>This is the final round, and we are tied. A win here secures the game.
+
+Looking at your recent plays, especially after the last two draws, a pattern emerges. After drawing on `paper` (round 5), you played `rock`. After drawing on `rock` (round 6), you played `scissors`. Following this sequence (`paper` -&gt; `rock` -&gt; `scissors`), it&#x27;s logical to assume you will now play `paper`.
+
+To counter your predicted `paper`, I will play `scissors`.
+
+scissors</td></tr>
+</tbody></table>
+</main></body></html>
